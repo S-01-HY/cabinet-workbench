@@ -1,0 +1,1453 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>全屋定制个人工作台</title>
+  <style>
+    :root {
+      --bg: #fbf6ef;
+      --panel: #fffdf9;
+      --soft: #f5eadc;
+      --line: #decbb5;
+      --text: #3f3127;
+      --muted: #7b6757;
+      --accent: #8d6b4d;
+      --accent-2: #6d8a72;
+      --warn: #b35f34;
+      --shadow: 0 14px 30px rgba(82, 58, 35, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        linear-gradient(135deg, rgba(226, 205, 179, .55), rgba(251, 246, 239, .9) 42%, rgba(214, 229, 211, .35));
+      min-height: 100vh;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    .app {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 18px 14px 88px;
+    }
+
+    .top {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .cloud-login {
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) minmax(130px, .8fr) auto auto auto;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 14px;
+      padding: 12px;
+      background: rgba(255, 253, 249, .94);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255, 253, 249, .94);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      min-height: 52px;
+      padding: 12px 14px;
+      background: var(--soft);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .panel-head strong { font-size: 16px; }
+
+    .panel-body { padding: 14px; }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 7px;
+      min-height: 38px;
+      padding: 8px 10px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 78px;
+      resize: vertical;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(141, 107, 77, .14);
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 7px;
+      min-height: 38px;
+      padding: 8px 12px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn.secondary {
+      color: var(--text);
+      background: #f2e6d8;
+      border: 1px solid var(--line);
+    }
+
+    .btn.ghost {
+      color: var(--accent);
+      background: transparent;
+      border: 1px solid var(--line);
+    }
+
+    .btn.danger {
+      background: #a4553f;
+    }
+
+    .btn.small {
+      min-height: 30px;
+      padding: 5px 9px;
+      font-size: 12px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      background: #fff8ef;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 8px 11px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .customer-card, .item-card {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 9px;
+      cursor: pointer;
+    }
+
+    .customer-card.active {
+      border-color: var(--accent);
+      box-shadow: inset 4px 0 0 var(--accent);
+    }
+
+    .line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 5px;
+    }
+
+    .muted { color: var(--muted); font-size: 13px; }
+    .tiny { color: var(--muted); font-size: 12px; }
+    .money { font-weight: 800; color: var(--accent); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 24px;
+      border-radius: 999px;
+      background: #f2e6d8;
+      border: 1px solid var(--line);
+      padding: 3px 9px;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 5px 6px 0;
+      white-space: nowrap;
+    }
+
+    .badge input {
+      flex: 0 0 auto;
+      margin: 0;
+      width: auto;
+      min-height: 0;
+    }
+
+    .color-prefs, .option-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+      align-items: flex-start;
+    }
+
+    .badge.green { background: #edf4ea; color: #4d7155; }
+    .badge.warn { background: #fbede3; color: var(--warn); }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .empty {
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(255,255,255,.55);
+    }
+
+    .photos {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .photo {
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      width: 100%;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: #f4ede4;
+    }
+
+    .photo-wrap {
+      position: relative;
+    }
+
+    .photo-delete {
+      position: absolute;
+      right: 5px;
+      top: 5px;
+      border: 0;
+      border-radius: 999px;
+      min-height: 24px;
+      padding: 2px 7px;
+      background: rgba(63, 49, 39, .78);
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { background: #f2e6d8; }
+
+    .quote-total {
+      display: grid;
+      gap: 8px;
+      max-width: 360px;
+      margin-left: auto;
+      margin-top: 12px;
+    }
+
+    .total-line {
+      display: flex;
+      justify-content: space-between;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 7px;
+      padding: 10px;
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .check-item {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 8px;
+    }
+
+    .print-area {
+      background: #fff;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .mobile-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 253, 249, .97);
+      border-top: 1px solid var(--line);
+      display: none;
+      grid-template-columns: repeat(6, 1fr);
+      z-index: 5;
+    }
+
+    .mobile-nav button {
+      min-height: 58px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .mobile-nav button.active {
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    @media (max-width: 860px) {
+      .app { padding: 14px 10px 80px; }
+      .grid { grid-template-columns: 1fr; }
+      .sidebar { order: 1; }
+      .main { order: 2; }
+      .cloud-login { grid-template-columns: 1fr; }
+      .row, .row.three { grid-template-columns: 1fr; }
+      .check-grid { grid-template-columns: 1fr; }
+      .mobile-nav { display: grid; }
+      .top { align-items: flex-start; }
+      h1 { font-size: 20px; }
+      .photos { grid-template-columns: repeat(2, 1fr); }
+      table { font-size: 12px; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .top, .sidebar, .tabs, .toolbar, .mobile-nav, .no-print { display: none !important; }
+      .app { max-width: none; padding: 0; }
+      .grid { display: block; }
+      .panel { box-shadow: none; border: 0; }
+      .panel-head { background: #fff; border-bottom: 2px solid #000; }
+      .section { display: none !important; }
+      #quote.section { display: block !important; }
+      input, select, textarea, button { display: none !important; }
+      .print-area { border: 0; padding: 0; }
+      th, td { border-color: #000; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div>
+        <h1>全屋定制个人工作台</h1>
+        <div class="sub">客户需求、方案版本、报价计算、修改确认、拆单检查</div>
+      </div>
+      <button class="btn secondary" id="seedBtn">载入示例</button>
+    </header>
+
+    <div class="cloud-login">
+      <div>
+        <label>同步密码</label>
+        <input id="syncPassword" type="password" placeholder="自己设置，至少 6 位" autocomplete="current-password" />
+      </div>
+      <button class="btn" id="loginBtn">读取云端</button>
+      <button class="btn secondary" id="signupBtn">保存到云端</button>
+      <button class="btn secondary" id="testCloudBtn">检测连接</button>
+      <button class="btn ghost" id="logoutBtn">退出</button>
+      <div class="tiny" id="cloudStatus" style="grid-column:1/-1">同一个同步密码就是同一份数据。先在一台设备点“保存到云端”，另一台设备再点“读取云端”。</div>
+    </div>
+
+    <div class="grid">
+      <aside class="panel sidebar">
+        <div class="panel-head">
+          <strong>客户列表</strong>
+          <button class="btn small" id="addCustomerBtn">新增</button>
+        </div>
+        <div class="panel-body">
+          <div class="row">
+            <div>
+              <label>房号</label>
+              <input id="customerRoom" placeholder="例：12-1803" />
+            </div>
+            <div>
+              <label>提醒日期</label>
+              <input id="customerReminder" type="date" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>状态</label>
+              <select id="customerStatus"></select>
+            </div>
+            <div>
+              <label>报价日期</label>
+              <input id="quoteDate" type="date" />
+            </div>
+          </div>
+          <label>上传现场图片</label>
+          <input id="photoInput" type="file" accept="image/*" multiple />
+          <div class="toolbar">
+            <button class="btn" id="saveCustomerBtn">保存客户</button>
+            <button class="btn ghost" id="deleteCustomerBtn">删除</button>
+          </div>
+          <div id="todayList"></div>
+          <div id="customerList"></div>
+        </div>
+      </aside>
+
+      <main class="panel main">
+        <div class="panel-head">
+          <strong id="activeTitle">未选择客户</strong>
+          <span class="tiny" id="saveState">本机自动保存</span>
+        </div>
+        <div class="panel-body">
+          <nav class="tabs" id="tabs">
+            <button class="tab active" data-tab="profile">档案</button>
+            <button class="tab" data-tab="needs">需求</button>
+            <button class="tab" data-tab="quote">报价</button>
+            <button class="tab" data-tab="revisions">修改</button>
+            <button class="tab" data-tab="checklist">拆单</button>
+            <button class="tab" data-tab="prices">价格库</button>
+          </nav>
+
+          <section class="section active" id="profile">
+            <div class="toolbar">
+              <button class="btn secondary" id="addPlanBtn">新增方案</button>
+              <select id="planSelect"></select>
+            </div>
+            <div class="row three">
+              <div>
+                <label>房号</label>
+                <input id="profileRoom" />
+              </div>
+              <div>
+                <label>报价日期</label>
+                <input id="profileQuoteDate" type="date" />
+              </div>
+              <div>
+                <label>户型</label>
+                <input id="profileLayout" placeholder="例：三室两厅" />
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label>预算</label>
+                <select id="profileBudget">
+                  <option>暂未明确</option><option>3万以内</option><option>3-5万</option><option>5-8万</option><option>8-10万</option><option>10万以上</option><option>重点看方案后决定</option>
+                </select>
+              </div>
+              <div>
+                <label>当前状态</label>
+                <select id="profileStatus"></select>
+              </div>
+            </div>
+            <label>客户重点需求</label>
+            <textarea id="profileNotes" placeholder="记录客户最在意的空间、功能、预算顾虑和家庭意见"></textarea>
+            <div class="photos" id="photoGrid"></div>
+          </section>
+
+          <section class="section" id="needs">
+            <div class="item-card">
+              <div class="line">
+                <strong>全屋整体偏好</strong>
+                <span class="badge green">先定大方向</span>
+              </div>
+              <div class="row">
+                <div>
+                  <label>风格偏好</label>
+                  <select id="styleSelect">
+                    <option>现代简约</option><option>奶油风</option><option>原木风</option><option>现代轻奢</option><option>新中式</option><option>法式</option><option>轻法式</option><option>北欧</option><option>日式</option><option>侘寂风</option><option>意式</option><option>意式极简</option><option>意式轻奢</option><option>中古风</option><option>工业风</option><option>其他备注</option>
+                  </select>
+                </div>
+                <div>
+                  <label>其他风格备注</label>
+                  <input id="styleNote" placeholder="客户给的参考图或关键词" />
+                </div>
+              </div>
+              <label>客户喜欢的参考图</label>
+              <input id="referenceInput" type="file" accept="image/*" multiple />
+              <div class="photos" id="referenceGrid"></div>
+              <div style="height:10px"></div>
+              <label>客餐厅配色</label>
+              <div class="color-prefs" id="livingColorPrefs"></div>
+              <label>客餐厅配色备注</label>
+              <input id="livingColorNote" placeholder="例：木纹柜体 + 奶油白柜门，局部玻璃门" />
+              <div style="height:10px"></div>
+              <label>卧室配色</label>
+              <div class="color-prefs" id="bedroomColorPrefs"></div>
+              <label>卧室配色备注</label>
+              <input id="bedroomColorNote" placeholder="例：浅木纹柜体 + 暖白柜门，卧室更柔和" />
+            </div>
+            <div class="row">
+              <div class="toolbar">
+                <button class="btn secondary" data-room="玄关">玄关</button>
+                <button class="btn secondary" data-room="客餐厅">客餐厅</button>
+                <button class="btn secondary" data-room="厨房">厨房</button>
+                <button class="btn secondary" data-room="主卧">主卧</button>
+                <button class="btn ghost" id="addRoomNeedBtn">新增空间</button>
+              </div>
+            </div>
+            <div id="needCards"></div>
+          </section>
+
+          <section class="section" id="quote">
+            <div class="toolbar no-print">
+              <button class="btn secondary" id="addCabinetBtn">新增柜体</button>
+              <button class="btn secondary" id="addAddonBtn">新增增项</button>
+              <button class="btn" id="printQuoteBtn">打印/导出报价单</button>
+            </div>
+            <div class="print-area">
+              <div class="line">
+                <strong>报价单</strong>
+                <span class="muted">房号：<span id="quoteRoomLabel"></span>　报价日期：<span id="quoteDateLabel"></span></span>
+              </div>
+              <div id="cabinetTable"></div>
+              <div style="height:12px"></div>
+              <div id="addonTable"></div>
+              <div class="quote-total">
+                <div class="total-line"><span>柜体小计</span><strong id="cabinetSubtotal">0</strong></div>
+                <div class="total-line"><span>增项小计</span><strong id="addonSubtotal">0</strong></div>
+                <div class="total-line"><span>合计</span><strong class="money" id="quoteTotal">0</strong></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section" id="revisions">
+            <div class="toolbar">
+              <button class="btn secondary" id="addRevisionBtn">新增修改记录</button>
+              <button class="btn" id="copyWechatBtn">生成微信确认话术</button>
+            </div>
+            <div id="revisionList"></div>
+            <label>微信话术</label>
+            <textarea id="wechatText" readonly></textarea>
+          </section>
+
+          <section class="section" id="checklist">
+            <div class="toolbar">
+              <button class="btn secondary" id="addCheckBtn">新增柜子检查</button>
+            </div>
+            <div id="checkList"></div>
+          </section>
+
+          <section class="section" id="prices">
+            <div class="toolbar">
+              <button class="btn secondary" id="addPriceBtn">新增柜体/柜门单价</button>
+              <button class="btn secondary" id="addAddonPriceBtn">新增增项单价</button>
+            </div>
+            <div class="row">
+              <div>
+                <strong>柜体柜门价格库</strong>
+                <div id="priceRules"></div>
+              </div>
+              <div>
+                <strong>增项价格库</strong>
+                <div id="addonRules"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <nav class="mobile-nav" id="mobileNav">
+    <button class="active" data-tab="profile">档案</button>
+    <button data-tab="needs">需求</button>
+    <button data-tab="quote">报价</button>
+    <button data-tab="revisions">修改</button>
+    <button data-tab="checklist">拆单</button>
+    <button data-tab="prices">价格</button>
+  </nav>
+
+  <script>
+    const NETLIFY_STATE_ENDPOINT = "/.netlify/functions/state";
+    const statuses = ["待量尺", "已量尺", "待出图", "待报价", "改图中", "待确认", "待下单", "已下单", "已完成", "流失"];
+    const cabinetTypes = ["多层板", "全铝蜂窝", "焊接铝"];
+    const doorTypes = ["欧松板", "全铝蜂窝", "焊接铝", "吸塑门"];
+    const rooms = ["玄关", "客餐厅", "厨房", "主卧", "次卧", "儿童房", "书房", "阳台", "卫生间", "多功能房", "其他"];
+    const colorOptions = ["木纹色柜体", "纯色柜体", "木纹+纯色搭配", "浅色系", "深色系", "奶油色系", "灰色系", "白色系", "黑白灰", "柜体柜门同色", "柜体柜门撞色", "上浅下深", "上深下浅", "暖色系", "冷色系"];
+    const doorPrefs = ["平板门", "造型门", "玻璃门", "铝框玻璃门", "藤编门", "开放格", "免拉手", "内嵌拉手", "明装拉手", "一门到顶", "分段门板", "灯带", "带锁抽屉"];
+    const bedroomRooms = ["主卧", "次卧", "儿童房"];
+    const roomCabinets = {
+      "玄关": ["鞋柜", "屏风柜", "换鞋凳", "玄关高柜", "杂物柜", "扫地机器人柜", "挂衣柜", "薄柜"],
+      "客餐厅": ["电视柜", "展示柜", "餐边柜", "储物柜", "冰箱柜", "酒柜", "水吧柜", "茶水柜", "开放格柜", "边柜"],
+      "厨房": ["地柜", "吊柜", "高柜", "电器柜", "冰箱柜", "水槽柜", "灶台柜", "转角柜", "拉篮柜", "调味柜"],
+      "主卧": ["衣柜", "床头柜", "梳妆台", "书桌", "书柜", "飘窗柜", "斗柜", "衣帽间柜", "电视柜"],
+      "次卧": ["衣柜", "床头柜", "书桌", "书柜", "飘窗柜", "斗柜", "储物柜", "榻榻米"],
+      "儿童房": ["衣柜", "书桌", "书柜", "玩具柜", "榻榻米", "床头柜", "储物柜", "上下床柜"],
+      "书房": ["书柜", "展示柜", "书桌", "文件柜", "榻榻米", "收纳柜", "办公桌", "矮柜"],
+      "阳台": ["洗衣机柜", "烘干机柜", "吊柜", "家政柜", "洗手盆柜", "储物柜", "清洁工具柜"],
+      "卫生间": ["浴室柜", "镜柜", "高柜", "洗衣柜", "收纳柜", "壁龛柜"],
+      "多功能房": ["榻榻米", "衣柜", "书桌", "书柜", "储物柜", "展示柜", "折叠床柜"],
+      "其他": ["储物柜", "展示柜", "矮柜", "高柜", "开放格柜", "其他柜体"]
+    };
+    const roomFunctions = {
+      "玄关": ["鞋量收纳", "换鞋", "挂衣", "全身镜", "钥匙区", "雨伞区", "扫地机器人位", "底部悬空", "临时置物"],
+      "客餐厅": ["展示", "收纳", "电视设备", "路由器", "酒水收纳", "咖啡机", "直饮机", "轨道插座", "灯带氛围"],
+      "厨房": ["常做饭", "少做饭", "洗碗机", "高低台", "拉篮", "调味篮", "垃圾处理器", "烟机尺寸", "灶具尺寸", "水槽尺寸", "电器尺寸"],
+      "主卧": ["床尺寸确认", "长衣区", "短衣区", "挂衣区", "叠衣区", "裤抽", "抽屉", "被褥区", "行李箱区", "开放格", "保险柜位"],
+      "次卧": ["床尺寸确认", "长衣区", "短衣区", "叠衣区", "被褥区", "书桌学习", "临时客卧", "行李箱区", "开放格"],
+      "儿童房": ["床尺寸确认", "学习", "玩具收纳", "衣物收纳", "书本收纳", "安全圆角", "可成长调整", "开放格", "抽屉"],
+      "书房": ["办公", "书本收纳", "文件收纳", "展示", "打印机位", "插座预留", "开放格", "隐藏收纳"],
+      "阳台": ["洗衣", "烘干", "清洁工具", "家政收纳", "洗手盆", "晾晒", "管道避让"],
+      "卫生间": ["洗漱收纳", "镜柜收纳", "纸品收纳", "吹风机", "插座预留", "防潮", "洗衣收纳"],
+      "多功能房": ["睡眠", "办公", "收纳", "展示", "临时客房", "儿童活动", "健身器材"],
+      "其他": ["收纳", "展示", "办公", "临时置物", "特殊尺寸", "其他功能"]
+    };
+    const checkTemplates = {
+      通用: ["长高深一致", "门缝正确", "层板内缩", "背板正确", "封板/收口", "见光板对应", "拉手方向", "铰链数量", "抽屉轨道", "五金数量", "安装空间"],
+      橱柜重点: ["烟机尺寸", "灶具尺寸", "水槽尺寸", "电器长高宽确认", "管道避让", "水电位确认", "台面长度", "转角处理", "安装顺序"],
+      "异形/转角重点": ["现场尺寸复核", "转角角度确认", "异形板件可生产", "门板开启无冲突", "封板收口合理", "安装顺序可行", "安装师傅确认"]
+    };
+
+    const storeKey = "cabinetWorkbenchV1";
+    const syncPasswordKey = "cabinetWorkbenchSyncPassword";
+    const serverMode = location.protocol === "http:" || location.protocol === "https:";
+    let cloudUser = localStorage.getItem(syncPasswordKey) ? { mode: "netlify" } : null;
+    let cloudSaveTimer = null;
+    let saveTimer = null;
+    let state = loadState();
+    migrateState();
+    let activeCustomerId = state.activeCustomerId || null;
+    let activePlanId = null;
+    let activeTab = "profile";
+
+    function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+    function today() { return new Date().toISOString().slice(0, 10); }
+    function round(n) { return Math.round(Number(n || 0)); }
+    function money(n) { return round(n).toLocaleString("zh-CN"); }
+
+    function loadState() {
+      const raw = localStorage.getItem(storeKey);
+      if (raw) return JSON.parse(raw);
+      return defaultState();
+    }
+
+    function defaultState() {
+      return {
+        activeCustomerId: null,
+        customers: [],
+        priceRules: [
+          { id: uid(), brand: "A品牌", cabinetType: "多层板", door: "欧松板", unit: "平方", price: 899, note: "示例，可修改" },
+          { id: uid(), brand: "A品牌", cabinetType: "全铝蜂窝", door: "全铝蜂窝", unit: "米", price: 899, note: "示例，可修改" },
+          { id: uid(), brand: "A品牌", cabinetType: "焊接铝", door: "吸塑门", unit: "自动", price: 799, note: "吊柜低于1米按米，达到1米按平方" }
+        ],
+        addonRules: [
+          { id: uid(), name: "抽屉", unit: "个", price: 260 },
+          { id: uid(), name: "灯带", unit: "米", price: 120 },
+          { id: uid(), name: "见光板", unit: "平方", price: 380 },
+          { id: uid(), name: "玻璃门", unit: "平方", price: 580 },
+          { id: uid(), name: "拉直器", unit: "个", price: 120 }
+        ]
+      };
+    }
+
+    function migrateState() {
+      const defaults = defaultState();
+      state.customers ||= [];
+      state.priceRules ||= [];
+      state.addonRules ||= [];
+      if (!state.priceRules.length) state.priceRules = defaults.priceRules;
+      if (!state.addonRules.length) state.addonRules = defaults.addonRules;
+      state.customers.forEach(c => {
+        c.colorPrefsLiving ||= c.colorPrefs || [];
+        c.colorNoteLiving ||= c.colorNote || "";
+        c.colorPrefsBedroom ||= [];
+        c.colorNoteBedroom ||= "";
+        c.referencePhotos ||= [];
+        c.plans ||= [];
+        c.plans.forEach(p => {
+          p.cabinets ||= [];
+          p.cabinets.forEach(item => {
+            if (!cabinetTypes.includes(item.cabinetType)) item.cabinetType = "多层板";
+            if (!doorTypes.includes(item.door)) item.door = "欧松板";
+          });
+        });
+      });
+      state.priceRules.forEach(r => {
+        if (!cabinetTypes.includes(r.cabinetType)) r.cabinetType = "多层板";
+        if (!doorTypes.includes(r.door)) r.door = "欧松板";
+      });
+    }
+
+    function save() {
+      state.activeCustomerId = activeCustomerId;
+      localStorage.setItem(storeKey, JSON.stringify(state));
+      document.getElementById("saveState").textContent = "已保存 " + new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+      if (cloudUser) queueCloudSave();
+      else queueServerSave();
+    }
+
+    function setCloudStatus(text) {
+      const el = document.getElementById("cloudStatus");
+      if (el) el.textContent = text;
+    }
+
+    function getSyncPassword() {
+      return (document.getElementById("syncPassword").value || localStorage.getItem(syncPasswordKey) || "").trim();
+    }
+
+    function syncHeaders() {
+      return {
+        "Content-Type": "application/json",
+        "X-Sync-Password": getSyncPassword()
+      };
+    }
+
+    function mergeState(remote, local) {
+      if (!remote || !remote.customers) return local;
+      if (!local || !local.customers || !local.customers.length) return remote;
+      return remote;
+    }
+
+    function queueCloudSave() {
+      if (!cloudUser || !getSyncPassword()) return;
+      clearTimeout(cloudSaveTimer);
+      cloudSaveTimer = setTimeout(async () => {
+        await saveCloudNow(false);
+      }, 500);
+    }
+
+    async function saveCloudNow(showStart = true) {
+      const password = getSyncPassword();
+      if (!password || password.length < 6) {
+        setCloudStatus("保存失败：同步密码至少需要 6 位。");
+        return false;
+      }
+      localStorage.setItem(syncPasswordKey, password);
+      cloudUser = { mode: "netlify" };
+      if (showStart) setCloudStatus("正在保存到 Netlify 云端...");
+      try {
+        state.activeCustomerId = activeCustomerId;
+        localStorage.setItem(storeKey, JSON.stringify(state));
+        const res = await fetch(NETLIFY_STATE_ENDPOINT, {
+          method: "POST",
+          headers: syncHeaders(),
+          body: JSON.stringify({ state })
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`${res.status} ${text || res.statusText || "保存失败"}`);
+        }
+        setCloudStatus("保存成功：云端已更新。其他设备输入同一个同步密码后点“读取云端”。");
+        document.getElementById("saveState").textContent = "云端已同步";
+        return true;
+      } catch (err) {
+        setCloudStatus("保存失败：" + err.message);
+        document.getElementById("saveState").textContent = "本机已保存，云同步失败";
+        return false;
+      }
+    }
+
+    function queueServerSave() {
+      if (!serverMode) return;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        try {
+          await fetch("/api/state", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(state)
+          });
+          document.getElementById("saveState").textContent = "已同步 " + new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+        } catch {
+          document.getElementById("saveState").textContent = "本机已保存，同步失败";
+        }
+      }, 350);
+    }
+
+    async function loadServerState() {
+      if (!serverMode) return;
+      try {
+        const res = await fetch("/api/state", { cache: "no-store" });
+        if (!res.ok) return;
+        const remote = await res.json();
+        if (!remote || typeof remote !== "object") return;
+        state = remote;
+        migrateState();
+        activeCustomerId = state.activeCustomerId || state.customers[0]?.id || null;
+        activePlanId = null;
+        localStorage.setItem(storeKey, JSON.stringify(state));
+        render();
+        document.getElementById("saveState").textContent = "已读取同步数据";
+      } catch {
+        document.getElementById("saveState").textContent = "同步服务未连接";
+      }
+    }
+
+    async function loadCloudState() {
+      if (!cloudUser || !getSyncPassword()) return;
+      try {
+        const res = await fetch(NETLIFY_STATE_ENDPOINT, {
+          method: "GET",
+          headers: syncHeaders(),
+          cache: "no-store"
+        });
+        if (res.status === 404) {
+          setCloudStatus("这个同步密码还没有云端数据，已准备创建。点击保存客户或保存到云端即可。");
+          queueCloudSave();
+          return;
+        }
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`${res.status} ${text || res.statusText || "读取失败"}`);
+        }
+        const data = await res.json();
+        if (data?.state) {
+          state = mergeState(data.state, state);
+          migrateState();
+          activeCustomerId = state.activeCustomerId || state.customers[0]?.id || null;
+          activePlanId = null;
+          localStorage.setItem(storeKey, JSON.stringify(state));
+          render();
+          setCloudStatus("已读取 Netlify 云端数据。");
+        } else {
+          queueCloudSave();
+          setCloudStatus("已创建 Netlify 云端数据。");
+        }
+      } catch (err) {
+        setCloudStatus("读取云端失败：" + err.message);
+      }
+    }
+
+    async function initCloudAuth() {
+      const saved = localStorage.getItem(syncPasswordKey) || "";
+      document.getElementById("syncPassword").value = saved;
+      cloudUser = saved ? { mode: "netlify" } : null;
+      if (cloudUser) await loadCloudState();
+    }
+
+    async function loginCloud() {
+      const password = getSyncPassword();
+      if (!password || password.length < 6) return setCloudStatus("请输入至少 6 位同步密码。");
+      localStorage.setItem(syncPasswordKey, password);
+      cloudUser = { mode: "netlify" };
+      await loadCloudState();
+    }
+
+    async function signupCloud() {
+      const password = getSyncPassword();
+      if (!password || password.length < 6) return setCloudStatus("请输入至少 6 位同步密码。");
+      localStorage.setItem(syncPasswordKey, password);
+      cloudUser = { mode: "netlify" };
+      await saveCloudNow(true);
+    }
+
+    async function logoutCloud() {
+      cloudUser = null;
+      localStorage.removeItem(syncPasswordKey);
+      document.getElementById("syncPassword").value = "";
+      setCloudStatus("已退出同步。未开启同步时只保存在当前浏览器。");
+    }
+
+    async function testCloudConnection() {
+      setCloudStatus("正在检测 Netlify 保存接口...");
+      try {
+        const res = await fetch(NETLIFY_STATE_ENDPOINT, {
+          method: "GET",
+          headers: syncHeaders(),
+          cache: "no-store"
+        });
+        if (res.status === 400) return setCloudStatus("接口正常。请输入至少 6 位同步密码后再开启同步。");
+        if (res.status === 404) return setCloudStatus("接口正常。这个同步密码还没有数据，点击保存到云端即可创建。");
+        if (res.ok) return setCloudStatus("接口正常。已能读取 Netlify 云端数据。");
+        setCloudStatus("检测失败：" + await res.text());
+      } catch (err) {
+        setCloudStatus("检测失败：Netlify Function 没有部署成功，或网站还没更新。请重新上传 cloud-deploy 文件夹。");
+      }
+    }
+
+    function currentCustomer() {
+      return state.customers.find(c => c.id === activeCustomerId) || null;
+    }
+
+    function currentPlan() {
+      const c = currentCustomer();
+      if (!c) return null;
+      if (!activePlanId && c.plans.length) activePlanId = c.plans[0].id;
+      return c.plans.find(p => p.id === activePlanId) || c.plans[0] || null;
+    }
+
+    function newPlan(name = "方案A") {
+      return { id: uid(), name, cabinets: [], addons: [], needs: {}, revisions: [], checks: [] };
+    }
+
+    function newCustomer(room = "未命名房号") {
+      const plan = newPlan("方案A");
+      return { id: uid(), room, quoteDate: today(), reminder: today(), status: "待量尺", layout: "", budget: "暂未明确", notes: "", style: "现代简约", styleNote: "", colorPrefsLiving: [], colorNoteLiving: "", colorPrefsBedroom: [], colorNoteBedroom: "", referencePhotos: [], photos: [], plans: [plan] };
+    }
+
+    function ensureCustomer() {
+      if (!state.customers.length) {
+        const c = newCustomer("12-1803");
+        state.customers.push(c);
+        activeCustomerId = c.id;
+        activePlanId = c.plans[0].id;
+        save();
+      }
+    }
+
+    function optionList(values, selected) {
+      return values.map(v => `<option ${v === selected ? "selected" : ""}>${v}</option>`).join("");
+    }
+
+    function initSelects() {
+      document.getElementById("customerStatus").innerHTML = optionList(statuses, "待量尺");
+      document.getElementById("profileStatus").innerHTML = optionList(statuses, "待量尺");
+      document.getElementById("customerReminder").value = today();
+      document.getElementById("quoteDate").value = today();
+    }
+
+    function setTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll(".tab, .mobile-nav button").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
+      document.querySelectorAll(".section").forEach(sec => sec.classList.toggle("active", sec.id === tab));
+      if (location.hash !== "#" + tab) history.replaceState(null, "", "#" + tab);
+    }
+
+    function render() {
+      ensureCustomer();
+      renderCustomers();
+      renderProfile();
+      renderNeeds();
+      renderQuote();
+      renderRevisions();
+      renderChecklist();
+      renderPrices();
+    }
+
+    function renderCustomers() {
+      const c = currentCustomer();
+      document.getElementById("activeTitle").textContent = c ? `${c.room}｜${c.status}` : "未选择客户";
+      const todayStr = today();
+      const due = state.customers.filter(x => x.reminder && x.reminder <= todayStr && !["已完成", "流失"].includes(x.status));
+      document.getElementById("todayList").innerHTML = `<div class="muted" style="margin:14px 0 8px">今天要处理</div>` + (due.length ? due.map(x => `
+        <div class="customer-card ${x.id === activeCustomerId ? "active" : ""}" data-customer="${x.id}">
+          <div class="line"><strong>${x.room}</strong><span class="badge warn">${x.status}</span></div>
+          <div class="tiny">提醒：${x.reminder || "未设置"}</div>
+        </div>`).join("") : `<div class="empty">暂无今日提醒</div>`);
+      document.getElementById("customerList").innerHTML = `<div class="muted" style="margin:14px 0 8px">全部客户</div>` + state.customers.map(x => `
+        <div class="customer-card ${x.id === activeCustomerId ? "active" : ""}" data-customer="${x.id}">
+          <div class="line"><strong>${x.room}</strong><span class="badge">${x.status}</span></div>
+          <div class="tiny">方案 ${x.plans.length} 个｜图片 ${x.photos.length} 张</div>
+        </div>`).join("");
+      document.querySelectorAll("[data-customer]").forEach(el => el.onclick = () => {
+        activeCustomerId = el.dataset.customer;
+        activePlanId = null;
+        save();
+        render();
+      });
+    }
+
+    function renderProfile() {
+      const c = currentCustomer();
+      if (!c) return;
+      document.getElementById("customerRoom").value = c.room;
+      document.getElementById("customerReminder").value = c.reminder || "";
+      document.getElementById("customerStatus").value = c.status;
+      document.getElementById("quoteDate").value = c.quoteDate || today();
+      document.getElementById("profileRoom").value = c.room;
+      document.getElementById("profileQuoteDate").value = c.quoteDate || today();
+      document.getElementById("profileLayout").value = c.layout || "";
+      document.getElementById("profileBudget").value = c.budget || "暂未明确";
+      document.getElementById("profileStatus").value = c.status;
+      document.getElementById("profileNotes").value = c.notes || "";
+      document.getElementById("styleSelect").value = c.style || "现代简约";
+      document.getElementById("styleNote").value = c.styleNote || "";
+      document.getElementById("livingColorNote").value = c.colorNoteLiving || "";
+      document.getElementById("bedroomColorNote").value = c.colorNoteBedroom || "";
+      document.getElementById("livingColorPrefs").innerHTML = colorOptions.map(v => `<label class="badge"><input type="checkbox" data-color-pref="living" value="${v}" ${(c.colorPrefsLiving || []).includes(v) ? "checked" : ""}/> ${v}</label>`).join("");
+      document.getElementById("bedroomColorPrefs").innerHTML = colorOptions.map(v => `<label class="badge"><input type="checkbox" data-color-pref="bedroom" value="${v}" ${(c.colorPrefsBedroom || []).includes(v) ? "checked" : ""}/> ${v}</label>`).join("");
+      document.getElementById("referenceGrid").innerHTML = (c.referencePhotos || []).length ? c.referencePhotos.map((src, i) => `<div class="photo-wrap"><img class="photo" src="${src}" alt="参考图" /><button class="photo-delete" data-del-reference="${i}">删</button></div>`).join("") : `<div class="empty" style="grid-column:1/-1">上传客户喜欢的风格、配色或柜子参考图</div>`;
+      document.getElementById("planSelect").innerHTML = c.plans.map(p => `<option value="${p.id}" ${p.id === activePlanId ? "selected" : ""}>${p.name}</option>`).join("");
+      document.getElementById("photoGrid").innerHTML = c.photos.length ? c.photos.map(src => `<img class="photo" src="${src}" alt="现场图片" />`).join("") : `<div class="empty" style="grid-column:1/-1">客户列表可上传现场图片</div>`;
+    }
+
+    function renderNeeds() {
+      const c = currentCustomer();
+      const p = currentPlan();
+      if (!c || !p) return;
+      document.getElementById("needCards").innerHTML = rooms.map(room => {
+        const n = p.needs[room] || { status: "可选", bed: "", cabinets: [], functions: [], doorPrefs: [], note: "" };
+        const selectedCabinets = n.cabinets || n.selected || [];
+        const fns = roomFunctions[room] || roomFunctions.其他;
+        const cabinets = roomCabinets[room] || roomCabinets.其他;
+        const bedField = bedroomRooms.includes(room) ? `<div><label>床尺寸</label><input data-need="${room}" data-field="bed" value="${n.bed || ""}" placeholder="例：1.8m"/></div>` : "";
+        return `<div class="item-card">
+          <div class="line"><strong>${room}</strong><span class="badge green">${n.status}</span></div>
+          <div class="row">
+            <div><label>状态</label><select data-need="${room}" data-field="status">${optionList(["必做", "可选", "暂不考虑", "已确认"], n.status)}</select></div>
+            <div><label>生活需求</label><input data-need="${room}" data-field="life" value="${n.life || ""}" placeholder="例：两人居住"/></div>
+          </div>
+          ${bedField}
+          <label>柜子类型</label>
+          <div class="option-group">${cabinets.map(v => `<label class="badge"><input type="checkbox" data-need-check="${room}" data-kind="cabinets" value="${v}" ${selectedCabinets.includes(v) ? "checked" : ""}/> ${v}</label>`).join("")}</div>
+          <label>功能需求</label>
+          <div class="option-group">${fns.map(v => `<label class="badge"><input type="checkbox" data-need-check="${room}" data-kind="functions" value="${v}" ${(n.functions || []).includes(v) ? "checked" : ""}/> ${v}</label>`).join("")}</div>
+          <label>柜门/设计偏好</label>
+          <div class="option-group">${doorPrefs.map(v => `<label class="badge"><input type="checkbox" data-need-check="${room}" data-kind="doorPrefs" value="${v}" ${(n.doorPrefs || []).includes(v) ? "checked" : ""}/> ${v}</label>`).join("")}</div>
+          <label>备注</label><textarea data-need="${room}" data-field="note">${n.note || ""}</textarea>
+        </div>`;
+      }).join("");
+    }
+
+    function findPriceRule(item) {
+      return state.priceRules.find(r => r.brand === item.brand && r.cabinetType === item.cabinetType && r.door === item.door) || null;
+    }
+
+    function calcCabinet(item) {
+      const rule = findPriceRule(item);
+      const price = Number(item.price || (rule && rule.price) || 0);
+      const h = Number(item.height || 0);
+      const l = Number(item.length || 0);
+      let unit = item.unit || (rule && rule.unit) || "平方";
+      if ((item.name || "").includes("吊柜") && unit === "自动") unit = h >= 1000 ? "平方" : "米";
+      const qty = unit === "米" ? l / 1000 : (l * h) / 1000000;
+      return { unit, qty: Number.isFinite(qty) ? qty : 0, price, amount: round(qty * price), warning: Number(item.depth || 0) > 600 };
+    }
+
+    function renderQuote() {
+      const c = currentCustomer();
+      const p = currentPlan();
+      if (!c || !p) return;
+      document.getElementById("quoteRoomLabel").textContent = c.room;
+      document.getElementById("quoteDateLabel").textContent = c.quoteDate || today();
+      let cabinetSubtotal = 0;
+      let addonSubtotal = 0;
+      const cabinetRows = p.cabinets.map((item, i) => {
+        const calc = calcCabinet(item);
+        cabinetSubtotal += calc.amount;
+        return `<tr>
+          <td>${i + 1}</td><td><input data-cab="${item.id}" data-field="name" value="${item.name || ""}"/></td>
+          <td><input data-cab="${item.id}" data-field="room" value="${item.room || ""}"/></td>
+          <td><input type="number" data-cab="${item.id}" data-field="length" value="${item.length || ""}" placeholder="长"/></td>
+          <td><input type="number" data-cab="${item.id}" data-field="height" value="${item.height || ""}" placeholder="高"/></td>
+          <td><input type="number" data-cab="${item.id}" data-field="depth" value="${item.depth || ""}" placeholder="深"/></td>
+          <td><select data-cab="${item.id}" data-field="brand">${optionList([...new Set(state.priceRules.map(r => r.brand))], item.brand)}</select></td>
+          <td><select data-cab="${item.id}" data-field="cabinetType">${optionList(cabinetTypes, item.cabinetType)}</select></td>
+          <td><select data-cab="${item.id}" data-field="door">${optionList(doorTypes, item.door)}</select></td>
+          <td>${calc.unit}</td><td>${calc.qty.toFixed(2)}</td><td>${money(calc.price)}</td><td>${money(calc.amount)}${calc.warning ? '<div class="tiny" style="color:#b35f34">深度超600</div>' : ""}</td>
+          <td><button class="btn danger small" data-del-cab="${item.id}">删</button></td>
+        </tr>`;
+      }).join("");
+      document.getElementById("cabinetTable").innerHTML = `<table><thead><tr><th>序</th><th>名称</th><th>空间</th><th>长</th><th>高</th><th>深</th><th>品牌</th><th>柜体材料</th><th>柜门材料</th><th>单位</th><th>数量</th><th>单价</th><th>金额</th><th class="no-print"></th></tr></thead><tbody>${cabinetRows || '<tr><td colspan="14">暂无柜体，点击新增柜体</td></tr>'}</tbody></table>`;
+      const addonRows = p.addons.map((item, i) => {
+        const amount = round(Number(item.qty || 0) * Number(item.price || 0));
+        addonSubtotal += amount;
+        return `<tr>
+          <td>${i + 1}</td><td><input data-addon="${item.id}" data-field="name" value="${item.name || ""}"/></td>
+          <td><input data-addon="${item.id}" data-field="unit" value="${item.unit || ""}"/></td>
+          <td><input type="number" data-addon="${item.id}" data-field="qty" value="${item.qty || ""}"/></td>
+          <td><input type="number" data-addon="${item.id}" data-field="price" value="${item.price || ""}"/></td>
+          <td>${money(amount)}</td><td><input data-addon="${item.id}" data-field="note" value="${item.note || ""}"/></td>
+          <td><button class="btn danger small" data-del-addon="${item.id}">删</button></td>
+        </tr>`;
+      }).join("");
+      document.getElementById("addonTable").innerHTML = `<table><thead><tr><th>序</th><th>增项</th><th>单位</th><th>数量</th><th>单价</th><th>金额</th><th>材料明细</th><th class="no-print"></th></tr></thead><tbody>${addonRows || '<tr><td colspan="8">暂无增项，点击新增增项</td></tr>'}</tbody></table>`;
+      document.getElementById("cabinetSubtotal").textContent = money(cabinetSubtotal);
+      document.getElementById("addonSubtotal").textContent = money(addonSubtotal);
+      document.getElementById("quoteTotal").textContent = money(cabinetSubtotal + addonSubtotal);
+    }
+
+    function renderRevisions() {
+      const p = currentPlan();
+      if (!p) return;
+      document.getElementById("revisionList").innerHTML = p.revisions.length ? p.revisions.map(r => `<div class="item-card">
+        <div class="row three">
+          <div><label>空间</label><input data-rev="${r.id}" data-field="room" value="${r.room || ""}"/></div>
+          <div><label>状态</label><select data-rev="${r.id}" data-field="status">${optionList(["未发送", "已发送", "客户又变更", "客户已确认"], r.status || "未发送")}</select></div>
+          <div><label>日期</label><input type="date" data-rev="${r.id}" data-field="date" value="${r.date || today()}"/></div>
+        </div>
+        <label>修改内容</label><textarea data-rev="${r.id}" data-field="content">${r.content || ""}</textarea>
+        <label class="badge"><input type="checkbox" data-rev-flag="${r.id}" data-field="redraw" ${r.redraw ? "checked" : ""}/> 需要重新出图</label>
+        <label class="badge"><input type="checkbox" data-rev-flag="${r.id}" data-field="priceImpact" ${r.priceImpact ? "checked" : ""}/> 影响报价</label>
+        <label class="badge"><input type="checkbox" data-rev-flag="${r.id}" data-field="timeImpact" ${r.timeImpact ? "checked" : ""}/> 影响工期</label>
+        <button class="btn danger small" data-del-rev="${r.id}">删除</button>
+      </div>`).join("") : `<div class="empty">暂无修改记录</div>`;
+    }
+
+    function renderChecklist() {
+      const p = currentPlan();
+      if (!p) return;
+      document.getElementById("checkList").innerHTML = p.checks.length ? p.checks.map(ch => {
+        const items = checkTemplates[ch.template] || checkTemplates.通用;
+        return `<div class="item-card">
+          <div class="row three">
+            <div><label>柜子名称</label><input data-check="${ch.id}" data-field="name" value="${ch.name || ""}"/></div>
+            <div><label>模板</label><select data-check="${ch.id}" data-field="template">${optionList(Object.keys(checkTemplates), ch.template || "通用")}</select></div>
+            <div><label>状态</label><select data-check="${ch.id}" data-field="status">${optionList(["未检查", "已检查", "正常", "有问题", "需复尺", "需沟通"], ch.status || "未检查")}</select></div>
+          </div>
+          <div class="check-grid">${items.map(v => `<label class="check-item"><input type="checkbox" data-check-item="${ch.id}" value="${v}" ${(ch.done || []).includes(v) ? "checked" : ""}/> ${v}</label>`).join("")}</div>
+          <label>问题记录</label><textarea data-check="${ch.id}" data-field="issue">${ch.issue || ""}</textarea>
+          <label>风险标注</label>
+          <div>${["转角复杂", "有管道", "需复尺", "需确认水电位", "需确认电器长高宽", "需安装师傅确认"].map(v => `<label class="badge"><input type="checkbox" data-risk="${ch.id}" value="${v}" ${(ch.risks || []).includes(v) ? "checked" : ""}/> ${v}</label>`).join("")}</div>
+          <button class="btn danger small" data-del-check="${ch.id}">删除</button>
+        </div>`;
+      }).join("") : `<div class="empty">暂无拆单检查，点击新增柜子检查</div>`;
+    }
+
+    function renderPrices() {
+      document.getElementById("priceRules").innerHTML = state.priceRules.map(r => `<div class="item-card">
+        <div class="row">
+          <div><label>品牌</label><input data-price="${r.id}" data-field="brand" value="${r.brand}"/></div>
+          <div><label>柜体材料</label><select data-price="${r.id}" data-field="cabinetType">${optionList(cabinetTypes, r.cabinetType)}</select></div>
+        </div>
+        <div class="row">
+          <div><label>柜门材料</label><select data-price="${r.id}" data-field="door">${optionList(doorTypes, r.door)}</select></div>
+          <div><label>单价</label><input type="number" data-price="${r.id}" data-field="price" value="${r.price}"/></div>
+        </div>
+        <div class="row">
+          <div><label>单位</label><select data-price="${r.id}" data-field="unit">${optionList(["平方", "米", "自动"], r.unit)}</select></div>
+          <div><label>备注</label><input data-price="${r.id}" data-field="note" value="${r.note || ""}"/></div>
+        </div>
+        <button class="btn danger small" data-del-price="${r.id}">删除</button>
+      </div>`).join("");
+      document.getElementById("addonRules").innerHTML = state.addonRules.map(r => `<div class="item-card">
+        <div class="row three">
+          <div><label>增项</label><input data-addon-price="${r.id}" data-field="name" value="${r.name}"/></div>
+          <div><label>单位</label><input data-addon-price="${r.id}" data-field="unit" value="${r.unit}"/></div>
+          <div><label>单价</label><input type="number" data-addon-price="${r.id}" data-field="price" value="${r.price}"/></div>
+        </div>
+        <button class="btn danger small" data-del-addon-price="${r.id}">删除</button>
+      </div>`).join("");
+    }
+
+    function updateCustomerFromInputs() {
+      const c = currentCustomer();
+      if (!c) return;
+      c.room = document.getElementById("profileRoom").value || document.getElementById("customerRoom").value || c.room;
+      c.quoteDate = document.getElementById("profileQuoteDate").value || document.getElementById("quoteDate").value || today();
+      c.layout = document.getElementById("profileLayout").value;
+      c.budget = document.getElementById("profileBudget").value;
+      c.status = document.getElementById("profileStatus").value;
+      c.notes = document.getElementById("profileNotes").value;
+      c.style = document.getElementById("styleSelect").value;
+      c.styleNote = document.getElementById("styleNote").value;
+      c.colorNoteLiving = document.getElementById("livingColorNote").value;
+      c.colorNoteBedroom = document.getElementById("bedroomColorNote").value;
+      save();
+      renderCustomers();
+      renderQuote();
+    }
+
+    document.addEventListener("input", e => {
+      const c = currentCustomer();
+      const p = currentPlan();
+      if (!c || !p) return;
+      if (["profileRoom", "profileQuoteDate", "profileLayout", "profileBudget", "profileStatus", "profileNotes", "styleSelect", "styleNote", "livingColorNote", "bedroomColorNote"].includes(e.target.id)) updateCustomerFromInputs();
+      if (e.target.dataset.need) {
+        const room = e.target.dataset.need;
+        p.needs[room] ||= { status: "可选", cabinets: [], functions: [], doorPrefs: [] };
+        p.needs[room][e.target.dataset.field] = e.target.value;
+        save(); renderNeeds();
+      }
+      if (e.target.dataset.cab) {
+        const item = p.cabinets.find(x => x.id === e.target.dataset.cab);
+        item[e.target.dataset.field] = e.target.value;
+        const rule = findPriceRule(item);
+        if (rule) item.price = rule.price;
+        save(); renderQuote();
+      }
+      if (e.target.dataset.addon) {
+        const item = p.addons.find(x => x.id === e.target.dataset.addon);
+        item[e.target.dataset.field] = e.target.value;
+        save(); renderQuote();
+      }
+      if (e.target.dataset.rev) {
+        const item = p.revisions.find(x => x.id === e.target.dataset.rev);
+        item[e.target.dataset.field] = e.target.value;
+        save(); renderRevisions();
+      }
+      if (e.target.dataset.check) {
+        const item = p.checks.find(x => x.id === e.target.dataset.check);
+        item[e.target.dataset.field] = e.target.value;
+        save(); renderChecklist();
+      }
+      if (e.target.dataset.price) {
+        const item = state.priceRules.find(x => x.id === e.target.dataset.price);
+        item[e.target.dataset.field] = e.target.dataset.field === "price" ? Number(e.target.value) : e.target.value;
+        save(); renderPrices(); renderQuote();
+      }
+      if (e.target.dataset.addonPrice) {
+        const item = state.addonRules.find(x => x.id === e.target.dataset.addonPrice);
+        item[e.target.dataset.field] = e.target.dataset.field === "price" ? Number(e.target.value) : e.target.value;
+        save(); renderPrices();
+      }
+    });
+
+    document.addEventListener("change", e => {
+      const p = currentPlan();
+      if (!p) return;
+      if (e.target.dataset.needCheck) {
+        const room = e.target.dataset.needCheck;
+        const kind = e.target.dataset.kind;
+        p.needs[room] ||= { status: "可选", cabinets: [], functions: [], doorPrefs: [] };
+        const arr = p.needs[room][kind] ||= [];
+        if (e.target.checked && !arr.includes(e.target.value)) arr.push(e.target.value);
+        if (!e.target.checked) p.needs[room][kind] = arr.filter(v => v !== e.target.value);
+        save();
+      }
+      if (e.target.dataset.colorPref !== undefined) {
+        const c = currentCustomer();
+        const field = e.target.dataset.colorPref === "bedroom" ? "colorPrefsBedroom" : "colorPrefsLiving";
+        c[field] ||= [];
+        if (e.target.checked && !c[field].includes(e.target.value)) c[field].push(e.target.value);
+        if (!e.target.checked) c[field] = c[field].filter(v => v !== e.target.value);
+        save();
+      }
+      if (e.target.dataset.revFlag) {
+        const item = p.revisions.find(x => x.id === e.target.dataset.revFlag);
+        item[e.target.dataset.field] = e.target.checked;
+        save();
+      }
+      if (e.target.dataset.checkItem) {
+        const item = p.checks.find(x => x.id === e.target.dataset.checkItem);
+        item.done ||= [];
+        if (e.target.checked && !item.done.includes(e.target.value)) item.done.push(e.target.value);
+        if (!e.target.checked) item.done = item.done.filter(v => v !== e.target.value);
+        save();
+      }
+      if (e.target.dataset.risk) {
+        const item = p.checks.find(x => x.id === e.target.dataset.risk);
+        item.risks ||= [];
+        if (e.target.checked && !item.risks.includes(e.target.value)) item.risks.push(e.target.value);
+        if (!e.target.checked) item.risks = item.risks.filter(v => v !== e.target.value);
+        save();
+      }
+    });
+
+    document.addEventListener("click", e => {
+      const c = currentCustomer();
+      const p = currentPlan();
+      if (e.target.dataset.tab) setTab(e.target.dataset.tab);
+      if (e.target.id === "addCustomerBtn") {
+        const room = document.getElementById("customerRoom").value || "新客户";
+        const next = newCustomer(room);
+        next.status = document.getElementById("customerStatus").value;
+        next.reminder = document.getElementById("customerReminder").value;
+        next.quoteDate = document.getElementById("quoteDate").value || today();
+        state.customers.unshift(next);
+        activeCustomerId = next.id;
+        activePlanId = next.plans[0].id;
+        save(); render();
+      }
+      if (e.target.id === "saveCustomerBtn" && c) {
+        c.room = document.getElementById("customerRoom").value || c.room;
+        c.status = document.getElementById("customerStatus").value;
+        c.reminder = document.getElementById("customerReminder").value;
+        c.quoteDate = document.getElementById("quoteDate").value || today();
+        save(); render();
+      }
+      if (e.target.id === "deleteCustomerBtn" && c && confirm("确认删除当前客户？")) {
+        state.customers = state.customers.filter(x => x.id !== c.id);
+        activeCustomerId = state.customers[0]?.id || null;
+        activePlanId = null;
+        save(); render();
+      }
+      if (e.target.id === "addPlanBtn" && c) {
+        const name = "方案" + String.fromCharCode(65 + c.plans.length);
+        const plan = newPlan(name);
+        c.plans.push(plan);
+        activePlanId = plan.id;
+        save(); render();
+      }
+      if (e.target.id === "addCabinetBtn" && p) {
+        const rule = state.priceRules[0] || {};
+        p.cabinets.push({ id: uid(), room: "主卧", name: "衣柜", length: 1000, height: 2400, depth: 550, brand: rule.brand || "", cabinetType: rule.cabinetType || "衣柜", door: rule.door || "", unit: rule.unit || "平方", price: rule.price || 0 });
+        save(); renderQuote();
+      }
+      if (e.target.id === "addAddonBtn" && p) {
+        const r = state.addonRules[0] || { name: "其他", unit: "个", price: 0 };
+        p.addons.push({ id: uid(), name: r.name, unit: r.unit, qty: 1, price: r.price, note: "" });
+        save(); renderQuote();
+      }
+      if (e.target.id === "printQuoteBtn") window.print();
+      if (e.target.id === "addRevisionBtn" && p) {
+        p.revisions.unshift({ id: uid(), date: today(), room: "主卧", content: "", status: "未发送", redraw: true, priceImpact: false, timeImpact: true });
+        save(); renderRevisions();
+      }
+      if (e.target.id === "copyWechatBtn") generateWechatText();
+      if (e.target.id === "addCheckBtn" && p) {
+        p.checks.unshift({ id: uid(), name: "新柜子", template: "通用", status: "未检查", done: [], risks: [], issue: "" });
+        save(); renderChecklist();
+      }
+      if (e.target.id === "addPriceBtn") {
+        state.priceRules.unshift({ id: uid(), brand: "新品牌", cabinetType: "多层板", door: "欧松板", unit: "平方", price: 0, note: "" });
+        save(); renderPrices();
+      }
+      if (e.target.id === "addAddonPriceBtn") {
+        state.addonRules.unshift({ id: uid(), name: "新增项", unit: "个", price: 0 });
+        save(); renderPrices();
+      }
+      handleDelete(e.target);
+    });
+
+    function handleDelete(target) {
+      const p = currentPlan();
+      if (!p) return;
+      if (target.dataset.delCab) p.cabinets = p.cabinets.filter(x => x.id !== target.dataset.delCab);
+      if (target.dataset.delAddon) p.addons = p.addons.filter(x => x.id !== target.dataset.delAddon);
+      if (target.dataset.delRev) p.revisions = p.revisions.filter(x => x.id !== target.dataset.delRev);
+      if (target.dataset.delCheck) p.checks = p.checks.filter(x => x.id !== target.dataset.delCheck);
+      if (target.dataset.delPrice) state.priceRules = state.priceRules.filter(x => x.id !== target.dataset.delPrice);
+      if (target.dataset.delAddonPrice) state.addonRules = state.addonRules.filter(x => x.id !== target.dataset.delAddonPrice);
+      if (target.dataset.delReference !== undefined) {
+        const c = currentCustomer();
+        if (c) c.referencePhotos.splice(Number(target.dataset.delReference), 1);
+      }
+      if (target.dataset.delCab || target.dataset.delAddon || target.dataset.delRev || target.dataset.delCheck || target.dataset.delPrice || target.dataset.delAddonPrice || target.dataset.delReference !== undefined) {
+        save(); render();
+      }
+    }
+
+    function generateWechatText() {
+      const c = currentCustomer();
+      const p = currentPlan();
+      if (!c || !p) return;
+      const latest = p.revisions[0];
+      const livingColors = [...(c.colorPrefsLiving || []), c.colorNoteLiving || ""].filter(Boolean).join("、");
+      const bedroomColors = [...(c.colorPrefsBedroom || []), c.colorNoteBedroom || ""].filter(Boolean).join("、");
+      const text = latest ? `您好，${c.room} 本次${latest.room}修改内容我整理如下：\\n${latest.content || "暂无具体内容"}\\n\\n${latest.redraw ? "本次需要重新出效果图。\\n" : ""}${latest.priceImpact ? "本次修改可能会影响报价。\\n" : ""}${latest.timeImpact ? "本次修改可能会影响出图或工期时间。\\n" : ""}\\n以上修改内容确认后，我将按此方向调整效果图；如后续新增修改，报价和出图时间可能同步调整。` : `您好，${c.room} 量尺后的需求我先整理如下：\\n风格：${c.style || ""} ${c.styleNote || ""}\\n客餐厅配色：${livingColors || "暂未明确"}\\n卧室配色：${bedroomColors || "暂未明确"}\\n重点需求：${c.notes || ""}\\n请您看一下是否有遗漏，我再按这个方向继续出方案。`;
+      document.getElementById("wechatText").value = text;
+      navigator.clipboard?.writeText(text).catch(() => {});
+    }
+
+    document.getElementById("planSelect").addEventListener("change", e => {
+      activePlanId = e.target.value;
+      save(); render();
+    });
+
+    document.getElementById("photoInput").addEventListener("change", e => {
+      const c = currentCustomer();
+      if (!c) return;
+      [...e.target.files].forEach(file => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          c.photos.push(reader.result);
+          save(); renderProfile(); renderCustomers();
+        };
+        reader.readAsDataURL(file);
+      });
+      e.target.value = "";
+    });
+
+    document.getElementById("referenceInput").addEventListener("change", e => {
+      const c = currentCustomer();
+      if (!c) return;
+      c.referencePhotos ||= [];
+      [...e.target.files].forEach(file => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          c.referencePhotos.push(reader.result);
+          save(); renderProfile();
+        };
+        reader.readAsDataURL(file);
+      });
+      e.target.value = "";
+    });
+
+    document.getElementById("seedBtn").addEventListener("click", () => {
+      if (!confirm("载入示例会新增一个示例客户，是否继续？")) return;
+      const c = newCustomer("8-902");
+      c.status = "待报价";
+      c.layout = "三室两厅";
+      c.budget = "3-5万";
+      c.notes = "客户想要浅色系，主卧衣柜和餐边柜重点沟通。";
+      c.plans[0].cabinets.push({ id: uid(), room: "客餐厅", name: "餐边柜地柜", length: 1868, height: 920, depth: 320, brand: "A品牌", cabinetType: "多层板", door: "欧松板", unit: "米", price: 899 });
+      c.plans[0].addons.push({ id: uid(), name: "抽屉", unit: "个", qty: 5, price: 260, note: "按数量汇总" });
+      c.plans[0].addons.push({ id: uid(), name: "灯带", unit: "米", qty: 8.6, price: 120, note: "按总米数汇总" });
+      state.customers.unshift(c);
+      activeCustomerId = c.id;
+      activePlanId = c.plans[0].id;
+      save(); render();
+    });
+
+    document.getElementById("loginBtn").addEventListener("click", loginCloud);
+    document.getElementById("signupBtn").addEventListener("click", signupCloud);
+    document.getElementById("testCloudBtn").addEventListener("click", testCloudConnection);
+    document.getElementById("logoutBtn").addEventListener("click", logoutCloud);
+
+    initSelects();
+    render();
+    if (location.hash && document.getElementById(location.hash.slice(1))) setTab(location.hash.slice(1));
+    initCloudAuth();
+  </script>
+</body>
+</html>
