@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>全屋定制个人工作台</title>
+  <title>全屋定制团队工作台</title>
   <style>
     :root {
       --bg: #fbf6ef;
@@ -47,7 +47,7 @@
 
     .cloud-login {
       display: grid;
-      grid-template-columns: minmax(160px, 1fr) auto auto auto auto auto;
+      grid-template-columns: minmax(120px, .8fr) minmax(140px, 1fr) minmax(140px, 1fr) auto auto auto auto auto auto;
       gap: 8px;
       align-items: end;
       margin-bottom: 14px;
@@ -69,7 +69,7 @@
 
     .pending-user {
       display: grid;
-      grid-template-columns: 1fr auto auto;
+      grid-template-columns: minmax(0, 1fr) auto auto auto;
       gap: 8px;
       align-items: center;
       padding: 8px 0;
@@ -80,6 +80,12 @@
       max-width: 760px;
       margin: 0 auto;
       padding: 18px 14px 60px;
+    }
+
+    .team-user-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
     }
 
     h1 {
@@ -469,6 +475,7 @@
       .sidebar { order: 1; }
       .main { order: 2; }
       .cloud-login { grid-template-columns: 1fr; }
+      .pending-user { grid-template-columns: 1fr; }
       .row, .row.three { grid-template-columns: 1fr; }
       .check-grid { grid-template-columns: 1fr; }
       .mobile-nav { display: grid; }
@@ -569,23 +576,51 @@
   <div class="app">
     <header class="top">
       <div>
-        <h1>全屋定制个人工作台</h1>
-        <div class="sub">客户需求、方案版本、报价计算、修改确认、拆单检查</div>
+        <h1>全屋定制团队工作台</h1>
+        <div class="sub">团队账号审核、客户需求、方案版本、报价计算、修改确认、拆单检查</div>
       </div>
       <button class="btn secondary" id="seedBtn">载入示例</button>
     </header>
 
     <div class="cloud-login">
       <div>
-        <label>同步密码</label>
-        <input id="syncPassword" type="password" placeholder="自己设置，至少 6 位" autocomplete="current-password" />
+        <label>姓名/店名</label>
+        <input id="accountName" placeholder="注册时填写" autocomplete="name" />
       </div>
-      <button class="btn" id="loginBtn">读取云端</button>
-      <button class="btn secondary" id="signupBtn">保存到云端</button>
+      <div>
+        <label>手机号</label>
+        <input id="accountPhone" placeholder="用于登录" autocomplete="username" />
+      </div>
+      <div>
+        <label>登录密码</label>
+        <input id="accountPassword" type="password" placeholder="至少 6 位" autocomplete="current-password" />
+      </div>
+      <button class="btn" id="loginBtn">登录</button>
+      <button class="btn secondary" id="signupBtn">申请注册</button>
+      <button class="btn secondary" id="loadCloudBtn">读取数据</button>
+      <button class="btn secondary" id="saveCloudBtn">保存数据</button>
       <button class="btn secondary" data-tab="prices">价格库设置</button>
+      <button class="btn secondary" id="teamBtn">团队管理</button>
       <button class="btn secondary" id="testCloudBtn">检测连接</button>
       <button class="btn ghost" id="logoutBtn">退出</button>
-      <div class="tiny" id="cloudStatus" style="grid-column:1/-1">同一个同步密码就是同一份数据。先在一台设备点“保存到云端”，另一台设备再点“读取云端”。</div>
+      <div class="tiny" id="cloudStatus" style="grid-column:1/-1">请登录账号。第一个注册账号自动成为超级管理员，后续设计师注册后需要审核。</div>
+      <div class="admin-panel" id="teamPanel">
+        <div class="row">
+          <div>
+            <label>当前查看数据</label>
+            <select id="ownerScopeSelect"></select>
+          </div>
+          <div>
+            <label>当前账号</label>
+            <input id="currentAccountInfo" readonly />
+          </div>
+        </div>
+        <div class="line">
+          <strong>团队账号</strong>
+          <button class="btn small secondary" id="refreshUsersBtn">刷新账号</button>
+        </div>
+        <div id="teamUsers" class="team-user-list"></div>
+      </div>
     </div>
 
     <div class="grid">
@@ -830,16 +865,17 @@
       "异形/转角重点": ["现场尺寸复核", "转角角度确认", "异形板件可生产", "门板开启无冲突", "封板收口合理", "安装顺序可行", "安装师傅确认"]
     };
 
-    const storeKey = "cabinetWorkbenchV1";
-    const syncPasswordKey = "cabinetWorkbenchSyncPassword";
+    const legacyStoreKey = "cabinetWorkbenchV1";
     const authTokenKey = "cabinetWorkbenchAuthToken";
     const authUserKey = "cabinetWorkbenchAuthUser";
-    const serverMode = location.protocol === "http:" || location.protocol === "https:";
+    const selectedOwnerKey = "cabinetWorkbenchSelectedOwner";
     let authToken = localStorage.getItem(authTokenKey) || "";
     let authUser = JSON.parse(localStorage.getItem(authUserKey) || "null");
-    let cloudUser = authToken ? { mode: "auth" } : null;
+    let selectedOwnerId = localStorage.getItem(selectedOwnerKey) || "";
+    let teamUsers = [];
+    let teamPanelOpen = false;
+    let cloudUser = authToken ? { mode: "account" } : null;
     let cloudSaveTimer = null;
-    let saveTimer = null;
     let state = loadState();
     migrateState();
     let activeCustomerId = state.activeCustomerId || null;
@@ -851,8 +887,19 @@
     function round(n) { return Math.round(Number(n || 0)); }
     function money(n) { return round(n).toLocaleString("zh-CN"); }
 
+    function currentOwnerId() {
+      if (!authUser) return "guest";
+      if (authUser.role === "owner" && selectedOwnerId) return selectedOwnerId;
+      return authUser.id;
+    }
+
+    function stateKey() {
+      return authUser ? `${legacyStoreKey}:${currentOwnerId()}` : legacyStoreKey;
+    }
+
     function loadState() {
-      const raw = localStorage.getItem(storeKey);
+      const canUseLegacy = !authUser || currentOwnerId() === authUser.id;
+      const raw = localStorage.getItem(stateKey()) || (canUseLegacy ? localStorage.getItem(legacyStoreKey) : "");
       if (raw) return JSON.parse(raw);
       return defaultState();
     }
@@ -912,10 +959,9 @@
 
     function save() {
       state.activeCustomerId = activeCustomerId;
-      localStorage.setItem(storeKey, JSON.stringify(state));
+      localStorage.setItem(stateKey(), JSON.stringify(state));
       document.getElementById("saveState").textContent = "已保存 " + new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
-      if (cloudUser) queueCloudSave();
-      else queueServerSave();
+      if (authToken) queueCloudSave();
     }
 
     function setCloudStatus(text) {
@@ -923,15 +969,29 @@
       if (el) el.textContent = text;
     }
 
-    function getSyncPassword() {
-      return (document.getElementById("syncPassword").value || localStorage.getItem(syncPasswordKey) || "").trim();
-    }
-
-    function syncHeaders() {
+    function authHeaders() {
       return {
         "Content-Type": "application/json",
-        "X-Sync-Password": getSyncPassword()
+        "Authorization": `Bearer ${authToken}`
       };
+    }
+
+    async function authRequest(action, payload = {}) {
+      const headers = { "Content-Type": "application/json" };
+      if (authToken) headers.Authorization = `Bearer ${authToken}`;
+      const res = await fetch(AUTH_ENDPOINT, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ action, ...payload })
+      });
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+      if (!res.ok) {
+        const message = typeof data === "string" ? data : data?.message || text || res.statusText;
+        throw new Error(`${res.status} ${message}`);
+      }
+      return data;
     }
 
     function mergeState(remote, local) {
@@ -941,7 +1001,7 @@
     }
 
     function queueCloudSave() {
-      if (!cloudUser || !getSyncPassword()) return;
+      if (!authToken || !authUser) return;
       clearTimeout(cloudSaveTimer);
       cloudSaveTimer = setTimeout(async () => {
         await saveCloudNow(false);
@@ -949,27 +1009,24 @@
     }
 
     async function saveCloudNow(showStart = true) {
-      const password = getSyncPassword();
-      if (!password || password.length < 6) {
-        setCloudStatus("保存失败：同步密码至少需要 6 位。");
+      if (!authToken || !authUser) {
+        setCloudStatus("请先登录账号，再保存云端数据。");
         return false;
       }
-      localStorage.setItem(syncPasswordKey, password);
-      cloudUser = { mode: "netlify" };
-      if (showStart) setCloudStatus("正在保存到 Netlify 云端...");
+      if (showStart) setCloudStatus("正在保存账号云端数据...");
       try {
         state.activeCustomerId = activeCustomerId;
-        localStorage.setItem(storeKey, JSON.stringify(state));
+        localStorage.setItem(stateKey(), JSON.stringify(state));
         const res = await fetch(NETLIFY_STATE_ENDPOINT, {
           method: "POST",
-          headers: syncHeaders(),
-          body: JSON.stringify({ state })
+          headers: authHeaders(),
+          body: JSON.stringify({ state, ownerId: currentOwnerId() })
         });
         if (!res.ok) {
           const text = await res.text();
           throw new Error(`${res.status} ${text || res.statusText || "保存失败"}`);
         }
-        setCloudStatus("保存成功：云端已更新。其他设备输入同一个同步密码后点“读取云端”。");
+        setCloudStatus("保存成功：当前账号数据已更新。");
         document.getElementById("saveState").textContent = "云端已同步";
         return true;
       } catch (err) {
@@ -979,53 +1036,22 @@
       }
     }
 
-    function queueServerSave() {
-      if (!serverMode) return;
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(async () => {
-        try {
-          await fetch("/api/state", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(state)
-          });
-          document.getElementById("saveState").textContent = "已同步 " + new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
-        } catch {
-          document.getElementById("saveState").textContent = "本机已保存，同步失败";
-        }
-      }, 350);
-    }
-
-    async function loadServerState() {
-      if (!serverMode) return;
-      try {
-        const res = await fetch("/api/state", { cache: "no-store" });
-        if (!res.ok) return;
-        const remote = await res.json();
-        if (!remote || typeof remote !== "object") return;
-        state = remote;
-        migrateState();
-        activeCustomerId = state.activeCustomerId || state.customers[0]?.id || null;
-        activePlanId = null;
-        localStorage.setItem(storeKey, JSON.stringify(state));
-        render();
-        document.getElementById("saveState").textContent = "已读取同步数据";
-      } catch {
-        document.getElementById("saveState").textContent = "同步服务未连接";
-      }
-    }
-
     async function loadCloudState() {
-      if (!cloudUser || !getSyncPassword()) return;
+      if (!authToken || !authUser) return;
       try {
-        const res = await fetch(NETLIFY_STATE_ENDPOINT, {
+        const url = `${NETLIFY_STATE_ENDPOINT}?ownerId=${encodeURIComponent(currentOwnerId())}`;
+        const res = await fetch(url, {
           method: "GET",
-          headers: syncHeaders(),
+          headers: authHeaders(),
           cache: "no-store"
         });
         if (res.status === 404) {
-          setCloudStatus("这个同步密码还没有云端数据，已准备创建。点击保存客户或保存到云端即可。");
-          queueCloudSave();
+          state = loadState();
+          migrateState();
+          activeCustomerId = state.activeCustomerId || state.customers[0]?.id || null;
+          activePlanId = null;
+          render();
+          setCloudStatus("这个账号还没有云端数据，当前显示本机数据，点击“保存数据”即可创建。");
           return;
         }
         if (!res.ok) {
@@ -1038,63 +1064,172 @@
           migrateState();
           activeCustomerId = state.activeCustomerId || state.customers[0]?.id || null;
           activePlanId = null;
-          localStorage.setItem(storeKey, JSON.stringify(state));
+          localStorage.setItem(stateKey(), JSON.stringify(state));
           render();
-          setCloudStatus("已读取 Netlify 云端数据。");
+          setCloudStatus("已读取当前账号云端数据。");
         } else {
-          queueCloudSave();
-          setCloudStatus("已创建 Netlify 云端数据。");
+          setCloudStatus("云端数据为空。");
         }
       } catch (err) {
         setCloudStatus("读取云端失败：" + err.message);
       }
     }
 
+    function saveSession(user, token) {
+      authUser = user;
+      authToken = token || authToken;
+      cloudUser = { mode: "account" };
+      if (authToken) localStorage.setItem(authTokenKey, authToken);
+      localStorage.setItem(authUserKey, JSON.stringify(authUser));
+      if (!selectedOwnerId || authUser.role !== "owner") selectedOwnerId = authUser.id;
+      localStorage.setItem(selectedOwnerKey, selectedOwnerId);
+      document.getElementById("accountName").value = authUser.name || "";
+      document.getElementById("accountPhone").value = authUser.phone || "";
+      document.getElementById("accountPassword").value = "";
+      renderTeamPanel();
+    }
+
     async function initCloudAuth() {
-      const saved = localStorage.getItem(syncPasswordKey) || "";
-      document.getElementById("syncPassword").value = saved;
-      cloudUser = saved ? { mode: "netlify" } : null;
-      if (cloudUser) await loadCloudState();
+      if (!authToken) {
+        renderTeamPanel();
+        return;
+      }
+      try {
+        const data = await authRequest("me");
+        saveSession(data.user, authToken);
+        if (authUser.role === "owner") await refreshUsers(false);
+        await loadCloudState();
+      } catch (err) {
+        authToken = "";
+        authUser = null;
+        cloudUser = null;
+        localStorage.removeItem(authTokenKey);
+        localStorage.removeItem(authUserKey);
+        setCloudStatus("登录已失效，请重新登录。");
+        renderTeamPanel();
+      }
     }
 
     async function loginCloud() {
-      const password = getSyncPassword();
-      if (!password || password.length < 6) return setCloudStatus("请输入至少 6 位同步密码。");
-      localStorage.setItem(syncPasswordKey, password);
-      cloudUser = { mode: "netlify" };
-      await loadCloudState();
+      const phone = document.getElementById("accountPhone").value.trim();
+      const password = document.getElementById("accountPassword").value.trim();
+      if (!phone || password.length < 6) return setCloudStatus("请输入手机号和至少 6 位密码。");
+      try {
+        const data = await authRequest("login", { phone, password });
+        saveSession(data.user, data.token);
+        if (authUser.role === "owner") await refreshUsers(false);
+        state = loadState();
+        migrateState();
+        await loadCloudState();
+        setCloudStatus(`登录成功：${authUser.name}（${authUser.role === "owner" ? "超级管理员" : "设计师"}）`);
+      } catch (err) {
+        setCloudStatus("登录失败：" + err.message);
+      }
     }
 
     async function signupCloud() {
-      const password = getSyncPassword();
-      if (!password || password.length < 6) return setCloudStatus("请输入至少 6 位同步密码。");
-      localStorage.setItem(syncPasswordKey, password);
-      cloudUser = { mode: "netlify" };
-      await saveCloudNow(true);
+      const name = document.getElementById("accountName").value.trim();
+      const phone = document.getElementById("accountPhone").value.trim();
+      const password = document.getElementById("accountPassword").value.trim();
+      if (!name || !phone || password.length < 6) return setCloudStatus("请填写姓名/店名、手机号和至少 6 位密码。");
+      try {
+        const data = await authRequest("register", { name, phone, password });
+        if (data.token) {
+          saveSession(data.user, data.token);
+          await refreshUsers(false);
+          await saveCloudNow(false);
+          setCloudStatus("注册成功：你是第一个账号，已自动成为超级管理员。");
+        } else {
+          setCloudStatus("注册申请已提交，请等待超级管理员审核通过。");
+        }
+      } catch (err) {
+        setCloudStatus("注册失败：" + err.message);
+      }
     }
 
     async function logoutCloud() {
+      authToken = "";
+      authUser = null;
       cloudUser = null;
-      localStorage.removeItem(syncPasswordKey);
-      document.getElementById("syncPassword").value = "";
-      setCloudStatus("已退出同步。未开启同步时只保存在当前浏览器。");
+      selectedOwnerId = "";
+      teamUsers = [];
+      localStorage.removeItem(authTokenKey);
+      localStorage.removeItem(authUserKey);
+      localStorage.removeItem(selectedOwnerKey);
+      document.getElementById("accountPassword").value = "";
+      state = loadState();
+      migrateState();
+      activeCustomerId = state.activeCustomerId || state.customers[0]?.id || null;
+      activePlanId = null;
+      renderTeamPanel();
+      render();
+      setCloudStatus("已退出账号。未登录时数据只保存在当前浏览器。");
     }
 
     async function testCloudConnection() {
-      setCloudStatus("正在检测 Netlify 保存接口...");
+      setCloudStatus("正在检测 Netlify 团队账号接口...");
       try {
-        const res = await fetch(NETLIFY_STATE_ENDPOINT, {
-          method: "GET",
-          headers: syncHeaders(),
-          cache: "no-store"
-        });
-        if (res.status === 400) return setCloudStatus("接口正常。请输入至少 6 位同步密码后再开启同步。");
-        if (res.status === 404) return setCloudStatus("接口正常。这个同步密码还没有数据，点击保存到云端即可创建。");
-        if (res.ok) return setCloudStatus("接口正常。已能读取 Netlify 云端数据。");
+        const res = await fetch(AUTH_ENDPOINT, { cache: "no-store" });
+        if (res.ok) return setCloudStatus("接口正常：团队账号接口已部署。");
         setCloudStatus("检测失败：" + await res.text());
       } catch (err) {
-        setCloudStatus("检测失败：Netlify Function 没有部署成功，或网站还没更新。请重新上传 cloud-deploy 文件夹。");
+        setCloudStatus("检测失败：Netlify Function 没有部署成功，或网站还没更新。");
       }
+    }
+
+    async function refreshUsers(showStatus = true) {
+      if (!authUser || authUser.role !== "owner") {
+        renderTeamPanel();
+        return;
+      }
+      try {
+        const data = await authRequest("listUsers");
+        teamUsers = data.users || [];
+        if (!selectedOwnerId || !teamUsers.some(user => user.id === selectedOwnerId)) selectedOwnerId = authUser.id;
+        localStorage.setItem(selectedOwnerKey, selectedOwnerId);
+        renderTeamPanel();
+        if (showStatus) setCloudStatus("团队账号列表已刷新。");
+      } catch (err) {
+        setCloudStatus("刷新团队账号失败：" + err.message);
+      }
+    }
+
+    async function updateTeamUser(userId, status) {
+      try {
+        const data = await authRequest("updateUser", { userId, status });
+        teamUsers = data.users || [];
+        renderTeamPanel();
+        setCloudStatus("账号状态已更新。");
+      } catch (err) {
+        setCloudStatus("账号更新失败：" + err.message);
+      }
+    }
+
+    function renderTeamPanel() {
+      const panel = document.getElementById("teamPanel");
+      const currentInfo = document.getElementById("currentAccountInfo");
+      const scope = document.getElementById("ownerScopeSelect");
+      const list = document.getElementById("teamUsers");
+      document.getElementById("teamBtn").style.display = authUser?.role === "owner" ? "" : "none";
+      panel.classList.toggle("active", Boolean(authUser?.role === "owner" && teamPanelOpen));
+      currentInfo.value = authUser ? `${authUser.name} / ${authUser.phone} / ${authUser.role === "owner" ? "超级管理员" : "设计师"}` : "未登录";
+      if (!authUser || authUser.role !== "owner") {
+        scope.innerHTML = authUser ? `<option>${authUser.name}</option>` : `<option>未登录</option>`;
+        list.innerHTML = `<div class="empty">只有超级管理员可以管理团队账号。</div>`;
+        return;
+      }
+      const activeUsers = teamUsers.filter(user => user.status === "active");
+      scope.innerHTML = activeUsers.map(user => `<option value="${user.id}" ${user.id === selectedOwnerId ? "selected" : ""}>${user.name}｜${user.role === "owner" ? "超级管理员" : "设计师"}</option>`).join("");
+      const statusText = { active: "已通过", pending: "待审核", rejected: "已拒绝", disabled: "已停用" };
+      list.innerHTML = teamUsers.length ? teamUsers.map(user => `<div class="pending-user">
+        <div>
+          <strong>${user.name}</strong>
+          <div class="tiny">${user.phone}｜${user.role === "owner" ? "超级管理员" : "设计师"}｜${statusText[user.status] || user.status}</div>
+        </div>
+        <button class="btn small secondary" data-user-status="${user.id}" data-status="active">通过</button>
+        <button class="btn small ghost" data-user-status="${user.id}" data-status="rejected">拒绝</button>
+        <button class="btn small danger" data-user-status="${user.id}" data-status="disabled">停用</button>
+      </div>`).join("") : `<div class="empty">暂无团队账号。</div>`;
     }
 
     function currentCustomer() {
@@ -1542,6 +1677,13 @@
       const c = currentCustomer();
       const p = currentPlan();
       if (e.target.dataset.tab) setTab(e.target.dataset.tab);
+      if (e.target.id === "teamBtn") {
+        teamPanelOpen = !teamPanelOpen;
+        renderTeamPanel();
+        if (teamPanelOpen) refreshUsers(false);
+      }
+      if (e.target.id === "refreshUsersBtn") refreshUsers(true);
+      if (e.target.dataset.userStatus) updateTeamUser(e.target.dataset.userStatus, e.target.dataset.status);
       if (e.target.id === "addCustomerBtn") {
         const room = document.getElementById("customerRoom").value || "新客户";
         const next = newCustomer(room);
@@ -1706,8 +1848,20 @@
 
     document.getElementById("loginBtn").addEventListener("click", loginCloud);
     document.getElementById("signupBtn").addEventListener("click", signupCloud);
+    document.getElementById("loadCloudBtn").addEventListener("click", loadCloudState);
+    document.getElementById("saveCloudBtn").addEventListener("click", () => saveCloudNow(true));
     document.getElementById("testCloudBtn").addEventListener("click", testCloudConnection);
     document.getElementById("logoutBtn").addEventListener("click", logoutCloud);
+    document.getElementById("ownerScopeSelect").addEventListener("change", async e => {
+      selectedOwnerId = e.target.value;
+      localStorage.setItem(selectedOwnerKey, selectedOwnerId);
+      state = loadState();
+      migrateState();
+      activeCustomerId = state.activeCustomerId || state.customers[0]?.id || null;
+      activePlanId = null;
+      render();
+      await loadCloudState();
+    });
 
     initSelects();
     render();
