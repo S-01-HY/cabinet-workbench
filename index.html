@@ -47,7 +47,7 @@
 
     .cloud-login {
       display: grid;
-      grid-template-columns: minmax(160px, 1fr) minmax(130px, .8fr) auto auto auto;
+      grid-template-columns: minmax(160px, 1fr) auto auto auto auto auto;
       gap: 8px;
       align-items: end;
       margin-bottom: 14px;
@@ -56,6 +56,30 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       box-shadow: var(--shadow);
+    }
+
+    .admin-panel, .intake-link-panel {
+      display: none;
+      grid-column: 1 / -1;
+      padding-top: 10px;
+      border-top: 1px dashed var(--line);
+    }
+
+    .admin-panel.active, .intake-link-panel.active { display: block; }
+
+    .pending-user {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(222, 203, 181, .55);
+    }
+
+    .intake-page {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 18px 14px 60px;
     }
 
     h1 {
@@ -413,6 +437,72 @@
   </style>
 </head>
 <body>
+  <div class="intake-page" id="intakePage" style="display:none">
+    <header class="top">
+      <div>
+        <h1>全屋定制需求填写</h1>
+        <div class="sub">请按实际想法填写，提交后设计师会在后台收到</div>
+      </div>
+    </header>
+    <main class="panel">
+      <div class="panel-head">
+        <strong id="intakeTitle">客户需求表</strong>
+        <span class="tiny" id="intakeStatus">无需登录</span>
+      </div>
+      <div class="panel-body">
+        <div class="row">
+          <div>
+            <label>房号</label>
+            <input id="intakeCustomerRoom" placeholder="例：12-1803" />
+          </div>
+          <div>
+            <label>风格偏好</label>
+            <select id="intakeStyle">
+              <option>现代简约</option><option>奶油风</option><option>原木风</option><option>现代轻奢</option><option>新中式</option><option>法式</option><option>轻法式</option><option>北欧</option><option>日式</option><option>侘寂风</option><option>意式</option><option>意式极简</option><option>意式轻奢</option><option>中古风</option><option>工业风</option><option>其他备注</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>客餐厅配色想法</label>
+            <input id="intakeLivingColor" placeholder="例：木纹柜体 + 奶油白柜门" />
+          </div>
+          <div>
+            <label>卧室配色想法</label>
+            <input id="intakeBedroomColor" placeholder="例：浅木纹 + 暖白" />
+          </div>
+        </div>
+        <label>重点需求和家人意见</label>
+        <textarea id="intakeNotes" placeholder="例：餐边柜要放咖啡机，主卧衣柜多挂衣区，老人房要好拿取"></textarea>
+        <div class="row">
+          <div>
+            <label>玄关需求</label>
+            <textarea id="intakeEntryNeed" placeholder="鞋柜、换鞋凳、屏风柜、扫地机器人等"></textarea>
+          </div>
+          <div>
+            <label>客餐厅需求</label>
+            <textarea id="intakeLivingNeed" placeholder="电视柜、餐边柜、展示柜、冰箱柜、插座、灯带等"></textarea>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>卧室需求</label>
+            <textarea id="intakeBedroomNeed" placeholder="床尺寸、衣柜、书桌书柜、梳妆台、挂衣叠衣等"></textarea>
+          </div>
+          <div>
+            <label>厨房需求</label>
+            <textarea id="intakeKitchenNeed" placeholder="做饭习惯、烟机灶具水槽、电器尺寸、管道避让等"></textarea>
+          </div>
+        </div>
+        <label>喜欢的参考图</label>
+        <input id="intakeReferenceInput" type="file" accept="image/*" multiple />
+        <div class="toolbar">
+          <button class="btn" id="submitIntakeBtn">提交给设计师</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
   <div class="app">
     <header class="top">
       <div>
@@ -429,6 +519,7 @@
       </div>
       <button class="btn" id="loginBtn">读取云端</button>
       <button class="btn secondary" id="signupBtn">保存到云端</button>
+      <button class="btn secondary" data-tab="prices">价格库设置</button>
       <button class="btn secondary" id="testCloudBtn">检测连接</button>
       <button class="btn ghost" id="logoutBtn">退出</button>
       <div class="tiny" id="cloudStatus" style="grid-column:1/-1">同一个同步密码就是同一份数据。先在一台设备点“保存到云端”，另一台设备再点“读取云端”。</div>
@@ -484,7 +575,6 @@
             <button class="tab" data-tab="quote">报价</button>
             <button class="tab" data-tab="revisions">修改</button>
             <button class="tab" data-tab="checklist">拆单</button>
-            <button class="tab" data-tab="prices">价格库</button>
           </nav>
 
           <section class="section active" id="profile">
@@ -633,11 +723,11 @@
     <button data-tab="quote">报价</button>
     <button data-tab="revisions">修改</button>
     <button data-tab="checklist">拆单</button>
-    <button data-tab="prices">价格</button>
   </nav>
 
   <script>
     const NETLIFY_STATE_ENDPOINT = "/.netlify/functions/sync";
+    const AUTH_ENDPOINT = "/.netlify/functions/auth";
     const statuses = ["待量尺", "已量尺", "待出图", "待报价", "改图中", "待确认", "待下单", "已下单", "已完成", "流失"];
     const cabinetTypes = ["多层板", "全铝蜂窝", "焊接铝"];
     const doorTypes = ["欧松板", "全铝蜂窝", "焊接铝", "吸塑门"];
@@ -679,8 +769,12 @@
 
     const storeKey = "cabinetWorkbenchV1";
     const syncPasswordKey = "cabinetWorkbenchSyncPassword";
+    const authTokenKey = "cabinetWorkbenchAuthToken";
+    const authUserKey = "cabinetWorkbenchAuthUser";
     const serverMode = location.protocol === "http:" || location.protocol === "https:";
-    let cloudUser = localStorage.getItem(syncPasswordKey) ? { mode: "netlify" } : null;
+    let authToken = localStorage.getItem(authTokenKey) || "";
+    let authUser = JSON.parse(localStorage.getItem(authUserKey) || "null");
+    let cloudUser = authToken ? { mode: "auth" } : null;
     let cloudSaveTimer = null;
     let saveTimer = null;
     let state = loadState();
@@ -1203,8 +1297,6 @@
       c.colorNoteLiving = document.getElementById("livingColorNote").value;
       c.colorNoteBedroom = document.getElementById("bedroomColorNote").value;
       save();
-      renderCustomers();
-      renderQuote();
     }
 
     document.addEventListener("input", e => {
@@ -1216,45 +1308,79 @@
         const room = e.target.dataset.need;
         p.needs[room] ||= { status: "可选", cabinets: [], functions: [], doorPrefs: [] };
         p.needs[room][e.target.dataset.field] = e.target.value;
-        save(); renderNeeds();
+        save();
       }
       if (e.target.dataset.cab) {
         const item = p.cabinets.find(x => x.id === e.target.dataset.cab);
         item[e.target.dataset.field] = e.target.value;
         const rule = findPriceRule(item);
         if (rule) item.price = rule.price;
-        save(); renderQuote();
+        save();
       }
       if (e.target.dataset.addon) {
         const item = p.addons.find(x => x.id === e.target.dataset.addon);
         item[e.target.dataset.field] = e.target.value;
-        save(); renderQuote();
+        save();
       }
       if (e.target.dataset.rev) {
         const item = p.revisions.find(x => x.id === e.target.dataset.rev);
         item[e.target.dataset.field] = e.target.value;
-        save(); renderRevisions();
+        save();
       }
       if (e.target.dataset.check) {
         const item = p.checks.find(x => x.id === e.target.dataset.check);
         item[e.target.dataset.field] = e.target.value;
-        save(); renderChecklist();
+        save();
       }
       if (e.target.dataset.price) {
         const item = state.priceRules.find(x => x.id === e.target.dataset.price);
         item[e.target.dataset.field] = e.target.dataset.field === "price" ? Number(e.target.value) : e.target.value;
-        save(); renderPrices(); renderQuote();
+        save();
       }
       if (e.target.dataset.addonPrice) {
         const item = state.addonRules.find(x => x.id === e.target.dataset.addonPrice);
         item[e.target.dataset.field] = e.target.dataset.field === "price" ? Number(e.target.value) : e.target.value;
-        save(); renderPrices();
+        save();
       }
     });
 
     document.addEventListener("change", e => {
       const p = currentPlan();
       if (!p) return;
+      if (["profileRoom", "profileQuoteDate", "profileLayout", "profileBudget", "profileStatus", "profileNotes", "styleSelect", "styleNote", "livingColorNote", "bedroomColorNote"].includes(e.target.id)) {
+        updateCustomerFromInputs();
+        renderCustomers();
+        renderQuote();
+      }
+      if (e.target.dataset.need) {
+        renderNeeds();
+      }
+      if (e.target.dataset.cab) {
+        const item = p.cabinets.find(x => x.id === e.target.dataset.cab);
+        const rule = item && findPriceRule(item);
+        if (item && rule) {
+          item.price = rule.price;
+          item.unit = rule.unit || item.unit;
+          save();
+        }
+        renderQuote();
+      }
+      if (e.target.dataset.addon) {
+        renderQuote();
+      }
+      if (e.target.dataset.rev) {
+        renderRevisions();
+      }
+      if (e.target.dataset.check) {
+        renderChecklist();
+      }
+      if (e.target.dataset.price) {
+        renderPrices();
+        renderQuote();
+      }
+      if (e.target.dataset.addonPrice) {
+        renderPrices();
+      }
       if (e.target.dataset.needCheck) {
         const room = e.target.dataset.needCheck;
         const kind = e.target.dataset.kind;
@@ -1330,7 +1456,7 @@
       }
       if (e.target.id === "addCabinetBtn" && p) {
         const rule = state.priceRules[0] || {};
-        p.cabinets.push({ id: uid(), room: "主卧", name: "衣柜", length: 1000, height: 2400, depth: 550, brand: rule.brand || "", cabinetType: rule.cabinetType || "衣柜", door: rule.door || "", unit: rule.unit || "平方", price: rule.price || 0 });
+        p.cabinets.push({ id: uid(), room: "主卧", name: "衣柜", length: 1000, height: 2400, depth: 550, brand: rule.brand || "", cabinetType: rule.cabinetType || "多层板", door: rule.door || "", unit: rule.unit || "平方", price: rule.price || 0 });
         save(); renderQuote();
       }
       if (e.target.id === "addAddonBtn" && p) {
