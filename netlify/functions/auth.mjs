@@ -79,10 +79,26 @@ export default async (request) => {
     const phone = requireText(body.phone);
     const password = requireText(body.password);
     if (!name || !phone || password.length < 6) {
-      return response(400, "Name, phone, and a 6+ character password are required.");
+      return response(400, "请填写姓名/店名、手机号和至少 6 位密码。");
     }
-    if (users.some(user => user.phone === phone)) {
-      return response(409, "This phone number has already been registered.");
+    const existing = users.find(user => user.phone === phone);
+    if (existing) {
+      if (existing.passwordHash === sha256(existing.salt + password) && existing.status === "active") {
+        const token = crypto.randomBytes(32).toString("hex");
+        existing.tokenHash = sha256(token);
+        existing.updatedAt = new Date().toISOString();
+        await saveUsers(store, users);
+        return response(200, { user: publicUser(existing), token, alreadyRegisteredLogin: true });
+      }
+      if (existing.passwordHash === sha256(existing.salt + password)) {
+        return response(403, {
+          status: existing.status,
+          message: existing.status === "pending"
+            ? "这个手机号已经提交过注册申请，正在等待超级管理员审核。"
+            : "这个手机号已经注册，但账号当前不可用，请联系超级管理员。"
+        });
+      }
+      return response(409, "这个手机号已经注册。请点“登录”；如果登录失败，说明密码不是这一次填写的密码，需要做密码重置。");
     }
 
     const now = new Date().toISOString();
@@ -117,10 +133,15 @@ export default async (request) => {
     const password = requireText(body.password);
     const user = users.find(item => item.phone === phone);
     if (!user || user.passwordHash !== sha256(user.salt + password)) {
-      return response(401, "Phone number or password is incorrect.");
+      return response(401, "手机号或密码不正确。");
     }
     if (user.status !== "active") {
-      return response(403, { status: user.status, message: "This account is not active." });
+      const message = user.status === "pending"
+        ? "账号还在等待超级管理员审核。"
+        : user.status === "disabled"
+          ? "账号已被停用，请联系超级管理员。"
+          : "账号当前不可用，请联系超级管理员。";
+      return response(403, { status: user.status, message });
     }
     const token = crypto.randomBytes(32).toString("hex");
     user.tokenHash = sha256(token);
@@ -131,13 +152,13 @@ export default async (request) => {
 
   if (action === "me") {
     const user = await currentUser(request, users);
-    if (!user) return response(401, "Please log in again.");
+    if (!user) return response(401, "请重新登录。");
     return response(200, { user: publicUser(user) });
   }
 
   const actor = await currentUser(request, users);
-  if (!actor) return response(401, "Please log in again.");
-  if (actor.role !== "owner") return response(403, "Only the owner can manage team accounts.");
+  if (!actor) return response(401, "请重新登录。");
+  if (actor.role !== "owner") return response(403, "只有超级管理员可以管理团队账号。");
 
   if (action === "listUsers") {
     return response(200, { users: users.map(publicUser) });
@@ -146,12 +167,12 @@ export default async (request) => {
   if (action === "updateUser") {
     const target = users.find(user => user.id === body.userId);
     const nextStatus = requireText(body.status);
-    if (!target) return response(404, "User not found.");
+    if (!target) return response(404, "没有找到这个账号。");
     if (target.id === actor.id && nextStatus !== "active") {
-      return response(400, "The owner account cannot be disabled or rejected.");
+      return response(400, "不能停用或拒绝超级管理员自己的账号。");
     }
     if (!["active", "pending", "rejected", "disabled"].includes(nextStatus)) {
-      return response(400, "Invalid status.");
+      return response(400, "账号状态不正确。");
     }
     target.status = nextStatus;
     target.updatedAt = new Date().toISOString();
@@ -160,5 +181,5 @@ export default async (request) => {
     return response(200, { users: users.map(publicUser) });
   }
 
-  return response(400, "Unknown action.");
+  return response(400, "未知操作。");
 };

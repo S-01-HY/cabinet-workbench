@@ -989,7 +989,7 @@
       try { data = text ? JSON.parse(text) : null; } catch { data = text; }
       if (!res.ok) {
         const message = typeof data === "string" ? data : data?.message || text || res.statusText;
-        throw new Error(`${res.status} ${message}`);
+        throw new Error(message || `请求失败：${res.status}`);
       }
       return data;
     }
@@ -1138,7 +1138,9 @@
           saveSession(data.user, data.token);
           await refreshUsers(false);
           await saveCloudNow(false);
-          setCloudStatus("注册成功：你是第一个账号，已自动成为超级管理员。");
+          setCloudStatus(data.alreadyRegisteredLogin
+            ? "这个手机号已经注册，密码正确，已直接登录。"
+            : "注册成功：你是第一个账号，已自动成为超级管理员。");
         } else {
           setCloudStatus("注册申请已提交，请等待超级管理员审核通过。");
         }
