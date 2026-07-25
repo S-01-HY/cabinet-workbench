@@ -344,6 +344,56 @@
 
     th { background: #f2e6d8; }
 
+    .quote-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .quote-table-wrap table { min-width: 1080px; }
+
+    .quote-mobile-list {
+      display: none;
+      gap: 10px;
+    }
+
+    .quote-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf9;
+      padding: 10px;
+    }
+
+    .quote-card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .quote-card-head strong {
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .quote-card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .quote-card-grid .wide { grid-column: 1 / -1; }
+
+    .quote-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
     .quote-total {
       display: grid;
       gap: 8px;
@@ -374,6 +424,13 @@
       padding: 8px;
     }
 
+    .custom-check-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
     .print-area {
       background: #fff;
       padding: 14px;
@@ -389,7 +446,7 @@
       background: rgba(255, 253, 249, .97);
       border-top: 1px solid var(--line);
       display: none;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       z-index: 5;
     }
 
@@ -419,6 +476,10 @@
       h1 { font-size: 20px; }
       .photos { grid-template-columns: repeat(2, 1fr); }
       table { font-size: 12px; }
+      .quote-table-wrap { display: none; }
+      .quote-mobile-list { display: grid; }
+      .quote-card-grid { grid-template-columns: 1fr; }
+      .quote-total { max-width: none; }
     }
 
     @media print {
@@ -432,6 +493,8 @@
       #quote.section { display: block !important; }
       input, select, textarea, button { display: none !important; }
       .print-area { border: 0; padding: 0; }
+      .quote-table-wrap { display: block !important; overflow: visible; border: 0; }
+      .quote-mobile-list { display: none !important; }
       th, td { border-color: #000; }
     }
   </style>
@@ -829,9 +892,15 @@
         c.plans ||= [];
         c.plans.forEach(p => {
           p.cabinets ||= [];
+          p.checks ||= [];
           p.cabinets.forEach(item => {
             if (!cabinetTypes.includes(item.cabinetType)) item.cabinetType = "多层板";
             if (!doorTypes.includes(item.door)) item.door = "欧松板";
+          });
+          p.checks.forEach(item => {
+            item.customItems ||= [];
+            item.done ||= [];
+            item.risks ||= [];
           });
         });
       });
@@ -1185,6 +1254,7 @@
       document.getElementById("quoteDateLabel").textContent = c.quoteDate || today();
       let cabinetSubtotal = 0;
       let addonSubtotal = 0;
+      const brandOptions = [...new Set(state.priceRules.map(r => r.brand).filter(Boolean))];
       const cabinetRows = p.cabinets.map((item, i) => {
         const calc = calcCabinet(item);
         cabinetSubtotal += calc.amount;
@@ -1194,14 +1264,40 @@
           <td><input type="number" data-cab="${item.id}" data-field="length" value="${item.length || ""}" placeholder="长"/></td>
           <td><input type="number" data-cab="${item.id}" data-field="height" value="${item.height || ""}" placeholder="高"/></td>
           <td><input type="number" data-cab="${item.id}" data-field="depth" value="${item.depth || ""}" placeholder="深"/></td>
-          <td><select data-cab="${item.id}" data-field="brand">${optionList([...new Set(state.priceRules.map(r => r.brand))], item.brand)}</select></td>
+          <td><select data-cab="${item.id}" data-field="brand">${optionList(brandOptions, item.brand)}</select></td>
           <td><select data-cab="${item.id}" data-field="cabinetType">${optionList(cabinetTypes, item.cabinetType)}</select></td>
           <td><select data-cab="${item.id}" data-field="door">${optionList(doorTypes, item.door)}</select></td>
           <td>${calc.unit}</td><td>${calc.qty.toFixed(2)}</td><td>${money(calc.price)}</td><td>${money(calc.amount)}${calc.warning ? '<div class="tiny" style="color:#b35f34">深度超600</div>' : ""}</td>
           <td><button class="btn danger small" data-del-cab="${item.id}">删</button></td>
         </tr>`;
       }).join("");
-      document.getElementById("cabinetTable").innerHTML = `<table><thead><tr><th>序</th><th>名称</th><th>空间</th><th>长</th><th>高</th><th>深</th><th>品牌</th><th>柜体材料</th><th>柜门材料</th><th>单位</th><th>数量</th><th>单价</th><th>金额</th><th class="no-print"></th></tr></thead><tbody>${cabinetRows || '<tr><td colspan="14">暂无柜体，点击新增柜体</td></tr>'}</tbody></table>`;
+      const cabinetCards = p.cabinets.map((item, i) => {
+        const calc = calcCabinet(item);
+        return `<div class="quote-card">
+          <div class="quote-card-head">
+            <strong>${i + 1}. ${item.name || "柜体"}</strong>
+            <span class="money">¥${money(calc.amount)}</span>
+          </div>
+          <div class="quote-card-grid">
+            <div><label>名称</label><input data-cab="${item.id}" data-field="name" value="${item.name || ""}"/></div>
+            <div><label>空间</label><input data-cab="${item.id}" data-field="room" value="${item.room || ""}"/></div>
+            <div><label>长 mm</label><input type="number" data-cab="${item.id}" data-field="length" value="${item.length || ""}"/></div>
+            <div><label>高 mm</label><input type="number" data-cab="${item.id}" data-field="height" value="${item.height || ""}"/></div>
+            <div><label>深 mm</label><input type="number" data-cab="${item.id}" data-field="depth" value="${item.depth || ""}"/></div>
+            <div><label>品牌</label><select data-cab="${item.id}" data-field="brand">${optionList(brandOptions, item.brand)}</select></div>
+            <div><label>柜体材料</label><select data-cab="${item.id}" data-field="cabinetType">${optionList(cabinetTypes, item.cabinetType)}</select></div>
+            <div><label>柜门材料</label><select data-cab="${item.id}" data-field="door">${optionList(doorTypes, item.door)}</select></div>
+          </div>
+          <div class="quote-card-meta">
+            <span class="badge">单位：${calc.unit}</span>
+            <span class="badge">数量：${calc.qty.toFixed(2)}</span>
+            <span class="badge">单价：¥${money(calc.price)}</span>
+            ${calc.warning ? '<span class="badge warn">深度超600</span>' : ""}
+          </div>
+          <button class="btn danger small no-print" data-del-cab="${item.id}">删除</button>
+        </div>`;
+      }).join("");
+      document.getElementById("cabinetTable").innerHTML = `<div class="quote-table-wrap"><table><thead><tr><th>序</th><th>名称</th><th>空间</th><th>长</th><th>高</th><th>深</th><th>品牌</th><th>柜体材料</th><th>柜门材料</th><th>单位</th><th>数量</th><th>单价</th><th>金额</th><th class="no-print"></th></tr></thead><tbody>${cabinetRows || '<tr><td colspan="14">暂无柜体，点击新增柜体</td></tr>'}</tbody></table></div><div class="quote-mobile-list">${cabinetCards || '<div class="empty">暂无柜体，点击新增柜体</div>'}</div>`;
       const addonRows = p.addons.map((item, i) => {
         const amount = round(Number(item.qty || 0) * Number(item.price || 0));
         addonSubtotal += amount;
@@ -1214,7 +1310,24 @@
           <td><button class="btn danger small" data-del-addon="${item.id}">删</button></td>
         </tr>`;
       }).join("");
-      document.getElementById("addonTable").innerHTML = `<table><thead><tr><th>序</th><th>增项</th><th>单位</th><th>数量</th><th>单价</th><th>金额</th><th>材料明细</th><th class="no-print"></th></tr></thead><tbody>${addonRows || '<tr><td colspan="8">暂无增项，点击新增增项</td></tr>'}</tbody></table>`;
+      const addonCards = p.addons.map((item, i) => {
+        const amount = round(Number(item.qty || 0) * Number(item.price || 0));
+        return `<div class="quote-card">
+          <div class="quote-card-head">
+            <strong>${i + 1}. ${item.name || "增项"}</strong>
+            <span class="money">¥${money(amount)}</span>
+          </div>
+          <div class="quote-card-grid">
+            <div><label>增项</label><input data-addon="${item.id}" data-field="name" value="${item.name || ""}"/></div>
+            <div><label>单位</label><input data-addon="${item.id}" data-field="unit" value="${item.unit || ""}"/></div>
+            <div><label>数量</label><input type="number" data-addon="${item.id}" data-field="qty" value="${item.qty || ""}"/></div>
+            <div><label>单价</label><input type="number" data-addon="${item.id}" data-field="price" value="${item.price || ""}"/></div>
+            <div class="wide"><label>材料明细</label><input data-addon="${item.id}" data-field="note" value="${item.note || ""}"/></div>
+          </div>
+          <button class="btn danger small no-print" data-del-addon="${item.id}">删除</button>
+        </div>`;
+      }).join("");
+      document.getElementById("addonTable").innerHTML = `<div class="quote-table-wrap"><table><thead><tr><th>序</th><th>增项</th><th>单位</th><th>数量</th><th>单价</th><th>金额</th><th>材料明细</th><th class="no-print"></th></tr></thead><tbody>${addonRows || '<tr><td colspan="8">暂无增项，点击新增增项</td></tr>'}</tbody></table></div><div class="quote-mobile-list">${addonCards || '<div class="empty">暂无增项，点击新增增项</div>'}</div>`;
       document.getElementById("cabinetSubtotal").textContent = money(cabinetSubtotal);
       document.getElementById("addonSubtotal").textContent = money(addonSubtotal);
       document.getElementById("quoteTotal").textContent = money(cabinetSubtotal + addonSubtotal);
@@ -1242,6 +1355,7 @@
       if (!p) return;
       document.getElementById("checkList").innerHTML = p.checks.length ? p.checks.map(ch => {
         const items = checkTemplates[ch.template] || checkTemplates.通用;
+        const customItems = ch.customItems || [];
         return `<div class="item-card">
           <div class="row three">
             <div><label>柜子名称</label><input data-check="${ch.id}" data-field="name" value="${ch.name || ""}"/></div>
@@ -1249,6 +1363,11 @@
             <div><label>状态</label><select data-check="${ch.id}" data-field="status">${optionList(["未检查", "已检查", "正常", "有问题", "需复尺", "需沟通"], ch.status || "未检查")}</select></div>
           </div>
           <div class="check-grid">${items.map(v => `<label class="check-item"><input type="checkbox" data-check-item="${ch.id}" value="${v}" ${(ch.done || []).includes(v) ? "checked" : ""}/> ${v}</label>`).join("")}</div>
+          <div class="custom-check-row">
+            <input data-custom-check-input="${ch.id}" placeholder="新增本柜要检查的问题，例：左侧管道避让复核" />
+            <button class="btn secondary small" data-add-custom-check="${ch.id}">新增问题</button>
+          </div>
+          <div class="check-grid">${customItems.map((v, i) => `<div class="check-item"><label><input type="checkbox" data-check-item="${ch.id}" value="${v}" ${(ch.done || []).includes(v) ? "checked" : ""}/> ${v}</label><button class="btn danger small" style="float:right" data-del-custom-check="${ch.id}" data-custom-index="${i}">删</button></div>`).join("")}</div>
           <label>问题记录</label><textarea data-check="${ch.id}" data-field="issue">${ch.issue || ""}</textarea>
           <label>风险标注</label>
           <div>${["转角复杂", "有管道", "需复尺", "需确认水电位", "需确认电器长高宽", "需安装师傅确认"].map(v => `<label class="badge"><input type="checkbox" data-risk="${ch.id}" value="${v}" ${(ch.risks || []).includes(v) ? "checked" : ""}/> ${v}</label>`).join("")}</div>
@@ -1471,8 +1590,19 @@
       }
       if (e.target.id === "copyWechatBtn") generateWechatText();
       if (e.target.id === "addCheckBtn" && p) {
-        p.checks.unshift({ id: uid(), name: "新柜子", template: "通用", status: "未检查", done: [], risks: [], issue: "" });
+        p.checks.unshift({ id: uid(), name: "新柜子", template: "通用", status: "未检查", done: [], risks: [], customItems: [], issue: "" });
         save(); renderChecklist();
+      }
+      if (e.target.dataset.addCustomCheck && p) {
+        const item = p.checks.find(x => x.id === e.target.dataset.addCustomCheck);
+        const input = document.querySelector(`[data-custom-check-input="${e.target.dataset.addCustomCheck}"]`);
+        const value = (input?.value || "").trim();
+        if (item && value) {
+          item.customItems ||= [];
+          if (!item.customItems.includes(value)) item.customItems.push(value);
+          if (input) input.value = "";
+          save(); renderChecklist();
+        }
       }
       if (e.target.id === "addPriceBtn") {
         state.priceRules.unshift({ id: uid(), brand: "新品牌", cabinetType: "多层板", door: "欧松板", unit: "平方", price: 0, note: "" });
@@ -1492,13 +1622,22 @@
       if (target.dataset.delAddon) p.addons = p.addons.filter(x => x.id !== target.dataset.delAddon);
       if (target.dataset.delRev) p.revisions = p.revisions.filter(x => x.id !== target.dataset.delRev);
       if (target.dataset.delCheck) p.checks = p.checks.filter(x => x.id !== target.dataset.delCheck);
+      if (target.dataset.delCustomCheck) {
+        const item = p.checks.find(x => x.id === target.dataset.delCustomCheck);
+        const index = Number(target.dataset.customIndex);
+        if (item && Number.isInteger(index)) {
+          const removed = item.customItems?.[index];
+          item.customItems = (item.customItems || []).filter((_, i) => i !== index);
+          if (removed) item.done = (item.done || []).filter(v => v !== removed);
+        }
+      }
       if (target.dataset.delPrice) state.priceRules = state.priceRules.filter(x => x.id !== target.dataset.delPrice);
       if (target.dataset.delAddonPrice) state.addonRules = state.addonRules.filter(x => x.id !== target.dataset.delAddonPrice);
       if (target.dataset.delReference !== undefined) {
         const c = currentCustomer();
         if (c) c.referencePhotos.splice(Number(target.dataset.delReference), 1);
       }
-      if (target.dataset.delCab || target.dataset.delAddon || target.dataset.delRev || target.dataset.delCheck || target.dataset.delPrice || target.dataset.delAddonPrice || target.dataset.delReference !== undefined) {
+      if (target.dataset.delCab || target.dataset.delAddon || target.dataset.delRev || target.dataset.delCheck || target.dataset.delCustomCheck || target.dataset.delPrice || target.dataset.delAddonPrice || target.dataset.delReference !== undefined) {
         save(); render();
       }
     }
