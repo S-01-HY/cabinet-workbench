@@ -69,7 +69,7 @@
 
     .pending-user {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto auto;
+      grid-template-columns: minmax(0, 1fr) auto auto auto auto;
       gap: 8px;
       align-items: center;
       padding: 8px 0;
@@ -604,6 +604,22 @@
       <button class="btn secondary" id="testCloudBtn">检测连接</button>
       <button class="btn ghost" id="logoutBtn">退出</button>
       <div class="tiny" id="cloudStatus" style="grid-column:1/-1">请登录账号。第一个注册账号自动成为超级管理员，后续设计师注册后需要审核。</div>
+      <div class="intake-link-panel" id="intakeLinkPanel">
+        <div class="row">
+          <div>
+            <label>客户填写链接房号</label>
+            <input id="intakeRoomForLink" placeholder="例：12-1803" />
+          </div>
+          <div>
+            <label>客户填写链接</label>
+            <input id="intakeLink" readonly placeholder="生成后发给客户填写需求" />
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="btn secondary" id="createIntakeBtn">生成客户填写链接</button>
+          <button class="btn ghost" id="copyIntakeBtn">复制链接</button>
+        </div>
+      </div>
       <div class="admin-panel" id="teamPanel">
         <div class="row">
           <div>
@@ -617,7 +633,10 @@
         </div>
         <div class="line">
           <strong>团队账号</strong>
-          <button class="btn small secondary" id="refreshUsersBtn">刷新账号</button>
+          <div class="toolbar" style="margin:0">
+            <button class="btn small secondary" id="refreshUsersBtn">刷新账号</button>
+            <button class="btn small secondary" id="exportAllBtn">导出全部客户</button>
+          </div>
         </div>
         <div id="teamUsers" class="team-user-list"></div>
       </div>
@@ -796,16 +815,30 @@
 
           <section class="section" id="prices">
             <div class="toolbar">
+              <button class="btn secondary" id="addTeamPriceBtn">新增团队柜体/柜门单价</button>
+              <button class="btn secondary" id="addTeamAddonPriceBtn">新增团队增项单价</button>
               <button class="btn secondary" id="addPriceBtn">新增柜体/柜门单价</button>
               <button class="btn secondary" id="addAddonPriceBtn">新增增项单价</button>
             </div>
             <div class="row">
               <div>
-                <strong>柜体柜门价格库</strong>
+                <strong>团队公共柜体柜门价格库</strong>
+                <div class="tiny">超级管理员维护，团队设计师报价时都能选择。</div>
+                <div id="teamPriceRules"></div>
+              </div>
+              <div>
+                <strong>团队公共增项价格库</strong>
+                <div class="tiny">超级管理员维护，团队设计师报价时都能选择。</div>
+                <div id="teamAddonRules"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <strong>个人柜体柜门价格库</strong>
                 <div id="priceRules"></div>
               </div>
               <div>
-                <strong>增项价格库</strong>
+                <strong>个人增项价格库</strong>
                 <div id="addonRules"></div>
               </div>
             </div>
@@ -826,6 +859,7 @@
   <script>
     const NETLIFY_STATE_ENDPOINT = "/.netlify/functions/sync";
     const AUTH_ENDPOINT = "/.netlify/functions/auth";
+    const INTAKE_ENDPOINT = "/.netlify/functions/intake";
     const statuses = ["待量尺", "已量尺", "待出图", "待报价", "改图中", "待确认", "待下单", "已下单", "已完成", "流失"];
     const cabinetTypes = ["多层板", "全铝蜂窝", "焊接铝"];
     const doorTypes = ["欧松板", "全铝蜂窝", "焊接铝", "吸塑门"];
@@ -873,6 +907,8 @@
     let authUser = JSON.parse(localStorage.getItem(authUserKey) || "null");
     let selectedOwnerId = localStorage.getItem(selectedOwnerKey) || "";
     let teamUsers = [];
+    let teamPriceRules = [];
+    let teamAddonRules = [];
     let teamPanelOpen = false;
     let cloudUser = authToken ? { mode: "account" } : null;
     let cloudSaveTimer = null;
@@ -1000,6 +1036,14 @@
       return remote;
     }
 
+    function allPriceRules() {
+      return [...teamPriceRules, ...state.priceRules];
+    }
+
+    function allAddonRules() {
+      return [...teamAddonRules, ...state.addonRules];
+    }
+
     function queueCloudSave() {
       if (!authToken || !authUser) return;
       clearTimeout(cloudSaveTimer);
@@ -1039,6 +1083,7 @@
     async function loadCloudState() {
       if (!authToken || !authUser) return;
       try {
+        await loadTeamPrices(false);
         const url = `${NETLIFY_STATE_ENDPOINT}?ownerId=${encodeURIComponent(currentOwnerId())}`;
         const res = await fetch(url, {
           method: "GET",
@@ -1072,6 +1117,42 @@
         }
       } catch (err) {
         setCloudStatus("读取云端失败：" + err.message);
+      }
+    }
+
+    async function loadTeamPrices(showStatus = false) {
+      if (!authToken) return;
+      try {
+        const res = await fetch(`${NETLIFY_STATE_ENDPOINT}?resource=teamPrices`, {
+          method: "GET",
+          headers: authHeaders(),
+          cache: "no-store"
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        teamPriceRules = Array.isArray(data.priceRules) ? data.priceRules : [];
+        teamAddonRules = Array.isArray(data.addonRules) ? data.addonRules : [];
+        renderPrices();
+        if (showStatus) setCloudStatus("团队公共价格库已读取。");
+      } catch (err) {
+        if (showStatus) setCloudStatus("读取团队公共价格库失败：" + err.message);
+      }
+    }
+
+    async function saveTeamPricesNow(showStatus = false) {
+      if (!authUser || authUser.role !== "owner") return false;
+      try {
+        const res = await fetch(NETLIFY_STATE_ENDPOINT, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ resource: "teamPrices", priceRules: teamPriceRules, addonRules: teamAddonRules })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        if (showStatus) setCloudStatus("团队公共价格库已保存。");
+        return true;
+      } catch (err) {
+        setCloudStatus("保存团队公共价格库失败：" + err.message);
+        return false;
       }
     }
 
@@ -1207,12 +1288,153 @@
       }
     }
 
+    async function resetTeamPassword(userId) {
+      const user = teamUsers.find(item => item.id === userId);
+      const password = prompt(`给 ${user?.name || "这个账号"} 设置新密码，至少 6 位：`);
+      if (!password) return;
+      if (password.length < 6) return setCloudStatus("重置失败：新密码至少需要 6 位。");
+      try {
+        const data = await authRequest("resetPassword", { userId, password });
+        teamUsers = data.users || [];
+        renderTeamPanel();
+        setCloudStatus("密码已重置。对方需要用新密码重新登录。");
+      } catch (err) {
+        setCloudStatus("重置密码失败：" + err.message);
+      }
+    }
+
+    async function createIntakeLink() {
+      if (!authToken || !authUser) return setCloudStatus("请先登录，再生成客户填写链接。");
+      const room = document.getElementById("intakeRoomForLink").value.trim() || document.getElementById("customerRoom").value.trim() || currentCustomer()?.room || "";
+      try {
+        const res = await fetch(INTAKE_ENDPOINT, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ action: "create", room })
+        });
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : {};
+        if (!res.ok) throw new Error(typeof data === "string" ? data : data.message || text);
+        const link = `${location.origin}${location.pathname}?intake=${encodeURIComponent(data.token)}`;
+        document.getElementById("intakeLink").value = link;
+        setCloudStatus("客户填写链接已生成，可以复制发给客户。");
+      } catch (err) {
+        setCloudStatus("生成客户填写链接失败：" + err.message);
+      }
+    }
+
+    async function copyIntakeLink() {
+      const link = document.getElementById("intakeLink").value;
+      if (!link) return setCloudStatus("请先生成客户填写链接。");
+      await navigator.clipboard?.writeText(link).catch(() => {});
+      setCloudStatus("客户填写链接已复制。");
+    }
+
+    function csvCell(value) {
+      return `"${String(value ?? "").replaceAll('"', '""')}"`;
+    }
+
+    function downloadTextFile(filename, text, type = "text/csv;charset=utf-8") {
+      const blob = new Blob(["\ufeff" + text], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function readImageFiles(files) {
+      return Promise.all([...files].slice(0, 8).map(file => new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve("");
+        reader.readAsDataURL(file);
+      }))).then(items => items.filter(Boolean));
+    }
+
+    async function initIntakePage() {
+      const token = new URLSearchParams(location.search).get("intake") || "";
+      if (!token) return false;
+      document.querySelector(".app").style.display = "none";
+      document.getElementById("mobileNav").style.display = "none";
+      document.getElementById("intakePage").style.display = "block";
+      try {
+        const res = await fetch(`${INTAKE_ENDPOINT}?token=${encodeURIComponent(token)}`, { cache: "no-store" });
+        const data = res.ok ? await res.json() : null;
+        if (!res.ok) throw new Error(await res.text());
+        document.getElementById("intakeCustomerRoom").value = data.room || "";
+        document.getElementById("intakeTitle").textContent = `${data.designerName || "设计师"}的客户需求表`;
+        document.getElementById("intakeStatus").textContent = "填写后提交给设计师";
+      } catch (err) {
+        document.getElementById("intakeStatus").textContent = "链接无效：" + err.message;
+      }
+      document.getElementById("submitIntakeBtn").addEventListener("click", async () => {
+        document.getElementById("intakeStatus").textContent = "正在提交...";
+        try {
+          const referencePhotos = await readImageFiles(document.getElementById("intakeReferenceInput").files);
+          const res = await fetch(INTAKE_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "submit",
+              token,
+              room: document.getElementById("intakeCustomerRoom").value.trim(),
+              style: document.getElementById("intakeStyle").value,
+              livingColor: document.getElementById("intakeLivingColor").value.trim(),
+              bedroomColor: document.getElementById("intakeBedroomColor").value.trim(),
+              notes: document.getElementById("intakeNotes").value.trim(),
+              entryNeed: document.getElementById("intakeEntryNeed").value.trim(),
+              livingNeed: document.getElementById("intakeLivingNeed").value.trim(),
+              bedroomNeed: document.getElementById("intakeBedroomNeed").value.trim(),
+              kitchenNeed: document.getElementById("intakeKitchenNeed").value.trim(),
+              referencePhotos
+            })
+          });
+          if (!res.ok) throw new Error(await res.text());
+          document.getElementById("intakeStatus").textContent = "提交成功，设计师后台已收到。";
+          document.getElementById("submitIntakeBtn").disabled = true;
+        } catch (err) {
+          document.getElementById("intakeStatus").textContent = "提交失败：" + err.message;
+        }
+      });
+      return true;
+    }
+
+    async function exportAllCustomers() {
+      if (!authUser || authUser.role !== "owner") return setCloudStatus("只有超级管理员可以导出全部客户。");
+      try {
+        const res = await fetch(`${NETLIFY_STATE_ENDPOINT}?resource=allStates`, {
+          method: "GET",
+          headers: authHeaders(),
+          cache: "no-store"
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        const rows = [["设计师", "手机号", "房号", "状态", "提醒日期", "报价日期", "户型", "预算", "风格", "重点需求"]];
+        (data.states || []).forEach(entry => {
+          const owner = entry.owner || {};
+          (entry.state?.customers || []).forEach(customer => {
+            rows.push([owner.name, owner.phone, customer.room, customer.status, customer.reminder, customer.quoteDate, customer.layout, customer.budget, customer.style, customer.notes]);
+          });
+        });
+        const csv = rows.map(row => row.map(csvCell).join(",")).join("\n");
+        downloadTextFile(`全屋定制团队客户导出-${today()}.csv`, csv);
+        setCloudStatus("全部客户数据已导出。");
+      } catch (err) {
+        setCloudStatus("导出失败：" + err.message);
+      }
+    }
+
     function renderTeamPanel() {
       const panel = document.getElementById("teamPanel");
       const currentInfo = document.getElementById("currentAccountInfo");
       const scope = document.getElementById("ownerScopeSelect");
       const list = document.getElementById("teamUsers");
       document.getElementById("teamBtn").style.display = authUser?.role === "owner" ? "" : "none";
+      document.getElementById("intakeLinkPanel").classList.toggle("active", Boolean(authUser));
       panel.classList.toggle("active", Boolean(authUser?.role === "owner" && teamPanelOpen));
       currentInfo.value = authUser ? `${authUser.name} / ${authUser.phone} / ${authUser.role === "owner" ? "超级管理员" : "设计师"}` : "未登录";
       if (!authUser || authUser.role !== "owner") {
@@ -1231,6 +1453,7 @@
         <button class="btn small secondary" data-user-status="${user.id}" data-status="active">通过</button>
         <button class="btn small ghost" data-user-status="${user.id}" data-status="rejected">拒绝</button>
         <button class="btn small danger" data-user-status="${user.id}" data-status="disabled">停用</button>
+        <button class="btn small secondary" data-reset-password="${user.id}">重置密码</button>
       </div>`).join("") : `<div class="empty">暂无团队账号。</div>`;
     }
 
@@ -1369,7 +1592,7 @@
     }
 
     function findPriceRule(item) {
-      return state.priceRules.find(r => r.brand === item.brand && r.cabinetType === item.cabinetType && r.door === item.door) || null;
+      return allPriceRules().find(r => r.brand === item.brand && r.cabinetType === item.cabinetType && r.door === item.door) || null;
     }
 
     function calcCabinet(item) {
@@ -1391,7 +1614,7 @@
       document.getElementById("quoteDateLabel").textContent = c.quoteDate || today();
       let cabinetSubtotal = 0;
       let addonSubtotal = 0;
-      const brandOptions = [...new Set(state.priceRules.map(r => r.brand).filter(Boolean))];
+      const brandOptions = [...new Set(allPriceRules().map(r => r.brand).filter(Boolean))];
       const cabinetRows = p.cabinets.map((item, i) => {
         const calc = calcCabinet(item);
         cabinetSubtotal += calc.amount;
@@ -1513,30 +1736,47 @@
       }).join("") : `<div class="empty">暂无拆单检查，点击新增柜子检查</div>`;
     }
 
-    function renderPrices() {
-      document.getElementById("priceRules").innerHTML = state.priceRules.map(r => `<div class="item-card">
+    function renderPriceRuleCards(rules, kind, editable) {
+      const attr = kind === "team" ? "data-team-price" : "data-price";
+      const delAttr = kind === "team" ? "data-del-team-price" : "data-del-price";
+      return rules.length ? rules.map(r => `<div class="item-card">
         <div class="row">
-          <div><label>品牌</label><input data-price="${r.id}" data-field="brand" value="${r.brand}"/></div>
-          <div><label>柜体材料</label><select data-price="${r.id}" data-field="cabinetType">${optionList(cabinetTypes, r.cabinetType)}</select></div>
+          <div><label>品牌</label><input ${editable ? "" : "disabled"} ${attr}="${r.id}" data-field="brand" value="${r.brand}"/></div>
+          <div><label>柜体材料</label><select ${editable ? "" : "disabled"} ${attr}="${r.id}" data-field="cabinetType">${optionList(cabinetTypes, r.cabinetType)}</select></div>
         </div>
         <div class="row">
-          <div><label>柜门材料</label><select data-price="${r.id}" data-field="door">${optionList(doorTypes, r.door)}</select></div>
-          <div><label>单价</label><input type="number" data-price="${r.id}" data-field="price" value="${r.price}"/></div>
+          <div><label>柜门材料</label><select ${editable ? "" : "disabled"} ${attr}="${r.id}" data-field="door">${optionList(doorTypes, r.door)}</select></div>
+          <div><label>单价</label><input ${editable ? "" : "disabled"} type="number" ${attr}="${r.id}" data-field="price" value="${r.price}"/></div>
         </div>
         <div class="row">
-          <div><label>单位</label><select data-price="${r.id}" data-field="unit">${optionList(["平方", "米", "自动"], r.unit)}</select></div>
-          <div><label>备注</label><input data-price="${r.id}" data-field="note" value="${r.note || ""}"/></div>
+          <div><label>单位</label><select ${editable ? "" : "disabled"} ${attr}="${r.id}" data-field="unit">${optionList(["平方", "米", "自动"], r.unit)}</select></div>
+          <div><label>备注</label><input ${editable ? "" : "disabled"} ${attr}="${r.id}" data-field="note" value="${r.note || ""}"/></div>
         </div>
-        <button class="btn danger small" data-del-price="${r.id}">删除</button>
-      </div>`).join("");
-      document.getElementById("addonRules").innerHTML = state.addonRules.map(r => `<div class="item-card">
+        ${editable ? `<button class="btn danger small" ${delAttr}="${r.id}">删除</button>` : ""}
+      </div>`).join("") : `<div class="empty">暂无价格规则</div>`;
+    }
+
+    function renderAddonRuleCards(rules, kind, editable) {
+      const attr = kind === "team" ? "data-team-addon-price" : "data-addon-price";
+      const delAttr = kind === "team" ? "data-del-team-addon-price" : "data-del-addon-price";
+      return rules.length ? rules.map(r => `<div class="item-card">
         <div class="row three">
-          <div><label>增项</label><input data-addon-price="${r.id}" data-field="name" value="${r.name}"/></div>
-          <div><label>单位</label><input data-addon-price="${r.id}" data-field="unit" value="${r.unit}"/></div>
-          <div><label>单价</label><input type="number" data-addon-price="${r.id}" data-field="price" value="${r.price}"/></div>
+          <div><label>增项</label><input ${editable ? "" : "disabled"} ${attr}="${r.id}" data-field="name" value="${r.name}"/></div>
+          <div><label>单位</label><input ${editable ? "" : "disabled"} ${attr}="${r.id}" data-field="unit" value="${r.unit}"/></div>
+          <div><label>单价</label><input ${editable ? "" : "disabled"} type="number" ${attr}="${r.id}" data-field="price" value="${r.price}"/></div>
         </div>
-        <button class="btn danger small" data-del-addon-price="${r.id}">删除</button>
-      </div>`).join("");
+        ${editable ? `<button class="btn danger small" ${delAttr}="${r.id}">删除</button>` : ""}
+      </div>`).join("") : `<div class="empty">暂无增项规则</div>`;
+    }
+
+    function renderPrices() {
+      const canEditTeamPrices = authUser?.role === "owner";
+      document.getElementById("addTeamPriceBtn").style.display = canEditTeamPrices ? "" : "none";
+      document.getElementById("addTeamAddonPriceBtn").style.display = canEditTeamPrices ? "" : "none";
+      document.getElementById("teamPriceRules").innerHTML = renderPriceRuleCards(teamPriceRules, "team", canEditTeamPrices);
+      document.getElementById("teamAddonRules").innerHTML = renderAddonRuleCards(teamAddonRules, "team", canEditTeamPrices);
+      document.getElementById("priceRules").innerHTML = renderPriceRuleCards(state.priceRules, "", true);
+      document.getElementById("addonRules").innerHTML = renderAddonRuleCards(state.addonRules, "", true);
     }
 
     function updateCustomerFromInputs() {
@@ -1598,6 +1838,16 @@
         item[e.target.dataset.field] = e.target.dataset.field === "price" ? Number(e.target.value) : e.target.value;
         save();
       }
+      if (e.target.dataset.teamPrice) {
+        const item = teamPriceRules.find(x => x.id === e.target.dataset.teamPrice);
+        item[e.target.dataset.field] = e.target.dataset.field === "price" ? Number(e.target.value) : e.target.value;
+        saveTeamPricesNow(false);
+      }
+      if (e.target.dataset.teamAddonPrice) {
+        const item = teamAddonRules.find(x => x.id === e.target.dataset.teamAddonPrice);
+        item[e.target.dataset.field] = e.target.dataset.field === "price" ? Number(e.target.value) : e.target.value;
+        saveTeamPricesNow(false);
+      }
     });
 
     document.addEventListener("change", e => {
@@ -1635,6 +1885,13 @@
         renderQuote();
       }
       if (e.target.dataset.addonPrice) {
+        renderPrices();
+      }
+      if (e.target.dataset.teamPrice) {
+        renderPrices();
+        renderQuote();
+      }
+      if (e.target.dataset.teamAddonPrice) {
         renderPrices();
       }
       if (e.target.dataset.needCheck) {
@@ -1686,6 +1943,10 @@
       }
       if (e.target.id === "refreshUsersBtn") refreshUsers(true);
       if (e.target.dataset.userStatus) updateTeamUser(e.target.dataset.userStatus, e.target.dataset.status);
+      if (e.target.dataset.resetPassword) resetTeamPassword(e.target.dataset.resetPassword);
+      if (e.target.id === "exportAllBtn") exportAllCustomers();
+      if (e.target.id === "createIntakeBtn") createIntakeLink();
+      if (e.target.id === "copyIntakeBtn") copyIntakeLink();
       if (e.target.id === "addCustomerBtn") {
         const room = document.getElementById("customerRoom").value || "新客户";
         const next = newCustomer(room);
@@ -1718,12 +1979,12 @@
         save(); render();
       }
       if (e.target.id === "addCabinetBtn" && p) {
-        const rule = state.priceRules[0] || {};
+        const rule = allPriceRules()[0] || {};
         p.cabinets.push({ id: uid(), room: "主卧", name: "衣柜", length: 1000, height: 2400, depth: 550, brand: rule.brand || "", cabinetType: rule.cabinetType || "多层板", door: rule.door || "", unit: rule.unit || "平方", price: rule.price || 0 });
         save(); renderQuote();
       }
       if (e.target.id === "addAddonBtn" && p) {
-        const r = state.addonRules[0] || { name: "其他", unit: "个", price: 0 };
+        const r = allAddonRules()[0] || { name: "其他", unit: "个", price: 0 };
         p.addons.push({ id: uid(), name: r.name, unit: r.unit, qty: 1, price: r.price, note: "" });
         save(); renderQuote();
       }
@@ -1756,6 +2017,16 @@
         state.addonRules.unshift({ id: uid(), name: "新增项", unit: "个", price: 0 });
         save(); renderPrices();
       }
+      if (e.target.id === "addTeamPriceBtn") {
+        if (authUser?.role !== "owner") return setCloudStatus("只有超级管理员可以维护团队公共价格库。");
+        teamPriceRules.unshift({ id: uid(), brand: "团队品牌", cabinetType: "多层板", door: "欧松板", unit: "平方", price: 0, note: "" });
+        saveTeamPricesNow(true); renderPrices();
+      }
+      if (e.target.id === "addTeamAddonPriceBtn") {
+        if (authUser?.role !== "owner") return setCloudStatus("只有超级管理员可以维护团队公共价格库。");
+        teamAddonRules.unshift({ id: uid(), name: "团队新增项", unit: "个", price: 0 });
+        saveTeamPricesNow(true); renderPrices();
+      }
       handleDelete(e.target);
     });
 
@@ -1777,11 +2048,19 @@
       }
       if (target.dataset.delPrice) state.priceRules = state.priceRules.filter(x => x.id !== target.dataset.delPrice);
       if (target.dataset.delAddonPrice) state.addonRules = state.addonRules.filter(x => x.id !== target.dataset.delAddonPrice);
+      if (target.dataset.delTeamPrice) {
+        teamPriceRules = teamPriceRules.filter(x => x.id !== target.dataset.delTeamPrice);
+        saveTeamPricesNow(true);
+      }
+      if (target.dataset.delTeamAddonPrice) {
+        teamAddonRules = teamAddonRules.filter(x => x.id !== target.dataset.delTeamAddonPrice);
+        saveTeamPricesNow(true);
+      }
       if (target.dataset.delReference !== undefined) {
         const c = currentCustomer();
         if (c) c.referencePhotos.splice(Number(target.dataset.delReference), 1);
       }
-      if (target.dataset.delCab || target.dataset.delAddon || target.dataset.delRev || target.dataset.delCheck || target.dataset.delCustomCheck || target.dataset.delPrice || target.dataset.delAddonPrice || target.dataset.delReference !== undefined) {
+      if (target.dataset.delCab || target.dataset.delAddon || target.dataset.delRev || target.dataset.delCheck || target.dataset.delCustomCheck || target.dataset.delPrice || target.dataset.delAddonPrice || target.dataset.delTeamPrice || target.dataset.delTeamAddonPrice || target.dataset.delReference !== undefined) {
         save(); render();
       }
     }
@@ -1865,10 +2144,13 @@
       await loadCloudState();
     });
 
-    initSelects();
-    render();
-    if (location.hash && document.getElementById(location.hash.slice(1))) setTab(location.hash.slice(1));
-    initCloudAuth();
+    (async () => {
+      if (await initIntakePage()) return;
+      initSelects();
+      render();
+      if (location.hash && document.getElementById(location.hash.slice(1))) setTab(location.hash.slice(1));
+      initCloudAuth();
+    })();
   </script>
 </body>
 </html>

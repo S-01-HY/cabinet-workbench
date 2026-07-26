@@ -181,5 +181,18 @@ export default async (request) => {
     return response(200, { users: users.map(publicUser) });
   }
 
+  if (action === "resetPassword") {
+    const target = users.find(user => user.id === body.userId);
+    const password = requireText(body.password);
+    if (!target) return response(404, "没有找到这个账号。");
+    if (password.length < 6) return response(400, "新密码至少需要 6 位。");
+    target.salt = crypto.randomBytes(16).toString("hex");
+    target.passwordHash = sha256(target.salt + password);
+    target.tokenHash = "";
+    target.updatedAt = new Date().toISOString();
+    await saveUsers(store, users);
+    return response(200, { users: users.map(publicUser) });
+  }
+
   return response(400, "未知操作。");
 };
