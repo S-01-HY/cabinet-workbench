@@ -25,7 +25,10 @@ async function currentUser(request) {
   if (!token) return null;
   const users = (await getStore("cabinet-team-auth").get(USER_KEY, { type: "json" })) || [];
   const tokenHash = sha256(token);
-  return users.find(user => user.tokenHash === tokenHash && user.status === "active") || null;
+  return users.find(user => user.status === "active" && (
+    user.tokenHash === tokenHash ||
+    (Array.isArray(user.sessions) && user.sessions.some(session => session.hash === tokenHash))
+  )) || null;
 }
 
 function dataKey(userId) {

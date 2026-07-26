@@ -1167,6 +1167,7 @@
       document.getElementById("accountName").value = authUser.name || "";
       document.getElementById("accountPhone").value = authUser.phone || "";
       document.getElementById("accountPassword").value = "";
+      document.getElementById("accountPassword").placeholder = "已登录，密码不会显示";
       renderTeamPanel();
     }
 
@@ -1240,6 +1241,7 @@
       localStorage.removeItem(authUserKey);
       localStorage.removeItem(selectedOwnerKey);
       document.getElementById("accountPassword").value = "";
+      document.getElementById("accountPassword").placeholder = "至少 6 位";
       state = loadState();
       migrateState();
       activeCustomerId = state.activeCustomerId || state.customers[0]?.id || null;

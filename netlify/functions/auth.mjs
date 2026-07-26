@@ -44,11 +44,24 @@ async function currentUser(request, users) {
   const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
   if (!token) return null;
   const tokenHash = sha256(token);
-  return users.find(user => user.tokenHash === tokenHash && user.status === "active") || null;
+  return users.find(user => user.status === "active" && (
+    user.tokenHash === tokenHash ||
+    (Array.isArray(user.sessions) && user.sessions.some(session => session.hash === tokenHash))
+  )) || null;
 }
 
 function requireText(value) {
   return String(value || "").trim();
+}
+
+function issueToken(user) {
+  const token = crypto.randomBytes(32).toString("hex");
+  user.sessions = Array.isArray(user.sessions) ? user.sessions : [];
+  user.sessions.push({ hash: sha256(token), createdAt: new Date().toISOString() });
+  user.sessions = user.sessions.slice(-8);
+  user.tokenHash = "";
+  user.updatedAt = new Date().toISOString();
+  return token;
 }
 
 export default async (request) => {
@@ -84,9 +97,7 @@ export default async (request) => {
     const existing = users.find(user => user.phone === phone);
     if (existing) {
       if (existing.passwordHash === sha256(existing.salt + password) && existing.status === "active") {
-        const token = crypto.randomBytes(32).toString("hex");
-        existing.tokenHash = sha256(token);
-        existing.updatedAt = new Date().toISOString();
+        const token = issueToken(existing);
         await saveUsers(store, users);
         return response(200, { user: publicUser(existing), token, alreadyRegisteredLogin: true });
       }
@@ -113,14 +124,14 @@ export default async (request) => {
       salt,
       passwordHash: sha256(salt + password),
       tokenHash: "",
+      sessions: [],
       createdAt: now,
       updatedAt: now
     };
 
     let token = "";
     if (isFirstUser) {
-      token = crypto.randomBytes(32).toString("hex");
-      user.tokenHash = sha256(token);
+      token = issueToken(user);
     }
 
     users.push(user);
@@ -143,9 +154,7 @@ export default async (request) => {
           : "账号当前不可用，请联系超级管理员。";
       return response(403, { status: user.status, message });
     }
-    const token = crypto.randomBytes(32).toString("hex");
-    user.tokenHash = sha256(token);
-    user.updatedAt = new Date().toISOString();
+    const token = issueToken(user);
     await saveUsers(store, users);
     return response(200, { user: publicUser(user), token });
   }
@@ -176,7 +185,10 @@ export default async (request) => {
     }
     target.status = nextStatus;
     target.updatedAt = new Date().toISOString();
-    if (nextStatus !== "active") target.tokenHash = "";
+    if (nextStatus !== "active") {
+      target.tokenHash = "";
+      target.sessions = [];
+    }
     await saveUsers(store, users);
     return response(200, { users: users.map(publicUser) });
   }
@@ -189,6 +201,7 @@ export default async (request) => {
     target.salt = crypto.randomBytes(16).toString("hex");
     target.passwordHash = sha256(target.salt + password);
     target.tokenHash = "";
+    target.sessions = [];
     target.updatedAt = new Date().toISOString();
     await saveUsers(store, users);
     return response(200, { users: users.map(publicUser) });
