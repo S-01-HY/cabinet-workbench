@@ -44,7 +44,7 @@ function today() {
 }
 
 function newPlanFromSubmission(payload) {
-  const needs = {
+  const needs = payload.needs && typeof payload.needs === "object" ? payload.needs : {
     "玄关": { status: "可选", note: payload.entryNeed || "", cabinets: [], functions: [], doorPrefs: [] },
     "客餐厅": { status: "可选", note: payload.livingNeed || "", cabinets: [], functions: [], doorPrefs: [] },
     "主卧": { status: "可选", note: payload.bedroomNeed || "", cabinets: [], functions: [], doorPrefs: [] },
@@ -58,10 +58,12 @@ function newCustomerFromSubmission(payload) {
   const style = String(payload.style || "现代简约").trim();
   const livingColor = String(payload.livingColor || "").trim();
   const bedroomColor = String(payload.bedroomColor || "").trim();
+  const colorPrefsLiving = Array.isArray(payload.colorPrefsLiving) ? payload.colorPrefsLiving : [];
+  const colorPrefsBedroom = Array.isArray(payload.colorPrefsBedroom) ? payload.colorPrefsBedroom : [];
   const notes = [
     String(payload.notes || "").trim(),
-    livingColor ? "客餐厅配色：" + livingColor : "",
-    bedroomColor ? "卧室配色：" + bedroomColor : ""
+    [...colorPrefsLiving, livingColor].filter(Boolean).length ? "客餐厅配色：" + [...colorPrefsLiving, livingColor].filter(Boolean).join("、") : "",
+    [...colorPrefsBedroom, bedroomColor].filter(Boolean).length ? "卧室配色：" + [...colorPrefsBedroom, bedroomColor].filter(Boolean).join("、") : ""
   ].filter(Boolean).join("\n");
   return {
     id: uid(),
@@ -74,9 +76,9 @@ function newCustomerFromSubmission(payload) {
     notes,
     style,
     styleNote: "客户填写链接提交",
-    colorPrefsLiving: [],
+    colorPrefsLiving,
     colorNoteLiving: livingColor,
-    colorPrefsBedroom: [],
+    colorPrefsBedroom,
     colorNoteBedroom: bedroomColor,
     referencePhotos: Array.isArray(payload.referencePhotos) ? payload.referencePhotos.slice(0, 8) : [],
     photos: [],

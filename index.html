@@ -535,35 +535,18 @@
         <div class="row">
           <div>
             <label>客餐厅配色想法</label>
-            <input id="intakeLivingColor" placeholder="例：木纹柜体 + 奶油白柜门" />
+            <div class="color-prefs" id="intakeLivingColorPrefs"></div>
+            <input id="intakeLivingColor" placeholder="其他备注：例：木纹柜体 + 奶油白柜门" />
           </div>
           <div>
             <label>卧室配色想法</label>
-            <input id="intakeBedroomColor" placeholder="例：浅木纹 + 暖白" />
+            <div class="color-prefs" id="intakeBedroomColorPrefs"></div>
+            <input id="intakeBedroomColor" placeholder="其他备注：例：浅木纹 + 暖白" />
           </div>
         </div>
         <label>重点需求和家人意见</label>
         <textarea id="intakeNotes" placeholder="例：餐边柜要放咖啡机，主卧衣柜多挂衣区，老人房要好拿取"></textarea>
-        <div class="row">
-          <div>
-            <label>玄关需求</label>
-            <textarea id="intakeEntryNeed" placeholder="鞋柜、换鞋凳、屏风柜、扫地机器人等"></textarea>
-          </div>
-          <div>
-            <label>客餐厅需求</label>
-            <textarea id="intakeLivingNeed" placeholder="电视柜、餐边柜、展示柜、冰箱柜、插座、灯带等"></textarea>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>卧室需求</label>
-            <textarea id="intakeBedroomNeed" placeholder="床尺寸、衣柜、书桌书柜、梳妆台、挂衣叠衣等"></textarea>
-          </div>
-          <div>
-            <label>厨房需求</label>
-            <textarea id="intakeKitchenNeed" placeholder="做饭习惯、烟机灶具水槽、电器尺寸、管道避让等"></textarea>
-          </div>
-        </div>
+        <div id="intakeNeedCards"></div>
         <label>喜欢的参考图</label>
         <input id="intakeReferenceInput" type="file" accept="image/*" multiple />
         <div class="toolbar">
@@ -1363,6 +1346,7 @@
       document.querySelector(".app").style.display = "none";
       document.getElementById("mobileNav").style.display = "none";
       document.getElementById("intakePage").style.display = "block";
+      renderIntakeOptions();
       try {
         const res = await fetch(`${INTAKE_ENDPOINT}?token=${encodeURIComponent(token)}`, { cache: "no-store" });
         const data = res.ok ? await res.json() : null;
@@ -1387,11 +1371,10 @@
               style: document.getElementById("intakeStyle").value,
               livingColor: document.getElementById("intakeLivingColor").value.trim(),
               bedroomColor: document.getElementById("intakeBedroomColor").value.trim(),
+              colorPrefsLiving: checkedValues("[data-intake-color='living']"),
+              colorPrefsBedroom: checkedValues("[data-intake-color='bedroom']"),
               notes: document.getElementById("intakeNotes").value.trim(),
-              entryNeed: document.getElementById("intakeEntryNeed").value.trim(),
-              livingNeed: document.getElementById("intakeLivingNeed").value.trim(),
-              bedroomNeed: document.getElementById("intakeBedroomNeed").value.trim(),
-              kitchenNeed: document.getElementById("intakeKitchenNeed").value.trim(),
+              needs: collectIntakeNeeds(),
               referencePhotos
             })
           });
@@ -1403,6 +1386,53 @@
         }
       });
       return true;
+    }
+
+    function checkedValues(selector) {
+      return [...document.querySelectorAll(selector)].filter(el => el.checked).map(el => el.value);
+    }
+
+    function renderIntakeOptions() {
+      document.getElementById("intakeLivingColorPrefs").innerHTML = colorOptions.map(v => `<label class="badge"><input type="checkbox" data-intake-color="living" value="${v}"/> ${v}</label>`).join("");
+      document.getElementById("intakeBedroomColorPrefs").innerHTML = colorOptions.map(v => `<label class="badge"><input type="checkbox" data-intake-color="bedroom" value="${v}"/> ${v}</label>`).join("");
+      document.getElementById("intakeNeedCards").innerHTML = rooms.map(room => {
+        const fns = roomFunctions[room] || roomFunctions.其他;
+        const cabinets = roomCabinets[room] || roomCabinets.其他;
+        const bedField = bedroomRooms.includes(room) ? `<div><label>床尺寸</label><input data-intake-need="${room}" data-field="bed" placeholder="例：1.8m"/></div>` : "";
+        return `<div class="item-card">
+          <div class="line"><strong>${room}</strong><span class="badge green">客户填写</span></div>
+          <div class="row">
+            <div><label>是否考虑这个空间</label><select data-intake-need="${room}" data-field="status">${optionList(["必做", "可选", "暂不考虑", "已确认"], "可选")}</select></div>
+            <div><label>生活需求</label><input data-intake-need="${room}" data-field="life" placeholder="例：两人居住、老人使用、孩子学习"/></div>
+          </div>
+          ${bedField}
+          <label>柜子类型</label>
+          <div class="option-group">${cabinets.map(v => `<label class="badge"><input type="checkbox" data-intake-check="${room}" data-kind="cabinets" value="${v}"/> ${v}</label>`).join("")}</div>
+          <label>功能需求</label>
+          <div class="option-group">${fns.map(v => `<label class="badge"><input type="checkbox" data-intake-check="${room}" data-kind="functions" value="${v}"/> ${v}</label>`).join("")}</div>
+          <label>柜门/设计偏好</label>
+          <div class="option-group">${doorPrefs.map(v => `<label class="badge"><input type="checkbox" data-intake-check="${room}" data-kind="doorPrefs" value="${v}"/> ${v}</label>`).join("")}</div>
+          <label>备注</label><textarea data-intake-need="${room}" data-field="note" placeholder="补充这个空间的特殊要求"></textarea>
+        </div>`;
+      }).join("");
+    }
+
+    function collectIntakeNeeds() {
+      const needs = {};
+      rooms.forEach(room => {
+        const item = { status: "可选", bed: "", life: "", cabinets: [], functions: [], doorPrefs: [], note: "" };
+        document.querySelectorAll(`[data-intake-need="${room}"]`).forEach(el => {
+          item[el.dataset.field] = el.value;
+        });
+        document.querySelectorAll(`[data-intake-check="${room}"]`).forEach(el => {
+          if (!el.checked) return;
+          const kind = el.dataset.kind;
+          item[kind] ||= [];
+          item[kind].push(el.value);
+        });
+        needs[room] = item;
+      });
+      return needs;
     }
 
     async function exportAllCustomers() {
